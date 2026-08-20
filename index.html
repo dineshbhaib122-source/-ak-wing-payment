@@ -1,283 +1,486 @@
 <!DOCTYPE html>
-<html>
+<html lang="hi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-
-<title>AK Wing Payment System</title>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-
-import {
-getAuth,
-GoogleAuthProvider,
-signInWithPopup,
-signOut,
-onAuthStateChanged
-}
-from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-
-import {
-getFirestore,
-collection,
-addDoc,
-query,
-where,
-getDocs,
-deleteDoc,
-doc
-}
-from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
-
-const firebaseConfig = {
-
-apiKey: "YOUR_API_KEY",
-
-authDomain: "YOUR_PROJECT.firebaseapp.com",
-
-projectId: "YOUR_PROJECT_ID",
-
-storageBucket: "YOUR_PROJECT.appspot.com",
-
-messagingSenderId: "YOUR_SENDER_ID",
-
-appId: "YOUR_APP_ID"
-
-};
-
-const app = initializeApp(firebaseConfig);
-
-const auth = getAuth(app);
-
-const db = getFirestore(app);
-
-const provider = new GoogleAuthProvider();
-
-let currentUser = null;
-
-window.login = async function () {
-
-await signInWithPopup(auth, provider);
-
-};
-
-window.logout = async function () {
-
-await signOut(auth);
-
-};
-
-onAuthStateChanged(auth, async (user) => {
-
-if (user) {
-
-currentUser = user;
-
-document.getElementById("loginBox").style.display = "none";
-
-document.getElementById("app").style.display = "block";
-
-document.getElementById("user").innerText = user.displayName;
-
-loadEntries();
-
-}
-
-});
-
-window.saveEntry = async function () {
-
-const flat = document.getElementById("flat").value;
-
-const name = document.getElementById("name").value;
-
-const date = document.getElementById("date").value;
-
-const amount = document.getElementById("amount").value;
-
-const mode = document.getElementById("mode").value;
-
-await addDoc(collection(db, "payments"), {
-
-uid: currentUser.uid,
-
-flat,
-
-name,
-
-date,
-
-amount,
-
-mode
-
-});
-
-loadEntries();
-
-};
-
-window.loadEntries = async function () {
-
-const q = query(
-
-collection(db, "payments"),
-
-where("uid", "==", currentUser.uid)
-
-);
-
-const snapshot = await getDocs(q);
-
-let html = "";
-
-snapshot.forEach((item) => {
-
-const data = item.data();
-
-html += `
-
-<div class="entry">
-
-<b>${data.flat}</b>
-
-${data.name}
-
-₹${data.amount}
-
-${data.mode}
-
-${data.date}
-
-<button onclick="removeEntry('${item.id}')">
-
-Delete
-
-</button>
-
-</div>
-
-`;
-
-});
-
-document.getElementById("entries").innerHTML = html;
-
-};
-
-window.removeEntry = async function (id) {
-
-await deleteDoc(doc(db, "payments", id));
-
-loadEntries();
-
-};
-</script>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<title>A-K Wing - Payment Entry</title>
 <style>
-body{
-font-family:Arial;
-padding:20px;
-background:#f5f5f5;
-}
+  :root{
+    --primary:#4472C4;
+    --primary-dark:#2e5395;
+    --bg:#f4f6fb;
+    --card:#ffffff;
+    --border:#dfe3ec;
+    --text:#1f2430;
+    --muted:#6b7280;
+    --green:#1a7f37;
+    --red:#c0392b;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding-bottom:40px;
+  }
+  header{
+    background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+    color:#fff;
+    padding:20px 16px 24px;
+    text-align:center;
+  }
+  header h1{margin:0;font-size:1.3rem;}
+  header p{margin:4px 0 0;font-size:0.85rem;opacity:0.9;}
 
-.card{
-background:white;
-padding:20px;
-border-radius:10px;
-margin-bottom:20px;
-}
+  .container{max-width:520px;margin:-16px auto 0;padding:0 12px;}
 
-input,select,button{
-width:100%;
-padding:12px;
-margin-top:10px;
-}
+  .card{
+    background:var(--card);
+    border-radius:14px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.08);
+    padding:16px;
+    margin-bottom:16px;
+    border:1px solid var(--border);
+  }
 
-.entry{
-background:#eeeeee;
-padding:10px;
-margin-top:10px;
-}
+  label{
+    display:block;
+    font-size:0.85rem;
+    font-weight:600;
+    color:var(--muted);
+    margin:12px 0 6px;
+  }
+  label:first-of-type{margin-top:0;}
+
+  select, input{
+    width:100%;
+    padding:12px 12px;
+    font-size:1rem;
+    border:1.5px solid var(--border);
+    border-radius:10px;
+    background:#fafbfe;
+    color:var(--text);
+  }
+  select:focus, input:focus{
+    outline:none;
+    border-color:var(--primary);
+    background:#fff;
+  }
+
+  .mode-toggle{
+    display:flex;
+    gap:10px;
+    margin-top:6px;
+  }
+  .mode-btn{
+    flex:1;
+    text-align:center;
+    padding:12px;
+    border-radius:10px;
+    border:1.5px solid var(--border);
+    background:#fafbfe;
+    font-weight:600;
+    color:var(--muted);
+    cursor:pointer;
+  }
+  .mode-btn.active-cash{
+    background:#fff4dc;
+    border-color:#e0a800;
+    color:#8a6300;
+  }
+  .mode-btn.active-online{
+    background:#e3f0ff;
+    border-color:var(--primary);
+    color:var(--primary-dark);
+  }
+
+  .save-btn{
+    width:100%;
+    margin-top:18px;
+    padding:14px;
+    background:var(--primary);
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    font-size:1.05rem;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .save-btn:active{background:var(--primary-dark);}
+
+  .msg{
+    text-align:center;
+    font-size:0.85rem;
+    margin-top:10px;
+    min-height:18px;
+    color:var(--green);
+    font-weight:600;
+  }
+
+  .section-title{
+    font-size:1rem;
+    font-weight:700;
+    margin:0 0 10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .section-title span.count{
+    font-size:0.8rem;
+    color:var(--muted);
+    font-weight:500;
+  }
+
+  .search-box{margin-bottom:10px;}
+
+  .entry{
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 12px;
+    margin-bottom:8px;
+    background:#fafbfe;
+    position:relative;
+  }
+  .entry .top-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:4px;
+  }
+  .entry .flat{
+    font-weight:700;
+    color:var(--primary-dark);
+    font-size:0.95rem;
+  }
+  .entry .amount{
+    font-weight:700;
+    font-size:0.95rem;
+  }
+  .entry .meta{
+    font-size:0.82rem;
+    color:var(--muted);
+    display:flex;
+    justify-content:space-between;
+  }
+  .badge{
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:20px;
+    font-size:0.72rem;
+    font-weight:700;
+  }
+  .badge.cash{background:#fff4dc;color:#8a6300;}
+  .badge.online{background:#e3f0ff;color:var(--primary-dark);}
+
+  .del-btn{
+    position:absolute;
+    top:8px;
+    right:10px;
+    background:none;
+    border:none;
+    color:var(--red);
+    font-size:0.78rem;
+    font-weight:700;
+    cursor:pointer;
+  }
+
+  .totals{
+    display:flex;
+    justify-content:space-between;
+    padding:12px 4px 0;
+    font-size:0.9rem;
+    font-weight:700;
+    border-top:1px dashed var(--border);
+    margin-top:6px;
+  }
+
+  .empty{
+    text-align:center;
+    color:var(--muted);
+    font-size:0.85rem;
+    padding:20px 0;
+  }
+
+  .export-btn{
+    width:100%;
+    padding:12px;
+    background:#fff;
+    border:1.5px solid var(--primary);
+    color:var(--primary-dark);
+    border-radius:10px;
+    font-weight:700;
+    margin-top:10px;
+    cursor:pointer;
+  }
 </style>
-
 </head>
-
 <body>
 
-<div id="loginBox" class="card">
+<header>
+  <h1>A–K Wing — Payment Entry</h1>
+  <p>Wing aur Flat select karo, entry bharo, save karo</p>
+</header>
 
-<h2>AK Wing Payment System</h2>
+<div class="container">
 
-<button onclick="login()">
+  <!-- ENTRY FORM -->
+  <div class="card">
+    <label for="wingNo">Wing</label>
+    <select id="wingNo" onchange="buildFlatList()"></select>
 
-Login With Google
+    <label for="flatNo">Flat No</label>
+    <select id="flatNo"></select>
 
-</button>
+    <label for="name">Name</label>
+    <input type="text" id="name" placeholder="Resident ka naam">
 
-</div>
+    <label for="date">Date</label>
+    <input type="date" id="date">
 
-<div id="app" style="display:none;">
+    <label for="amount">Amount</label>
+    <input type="number" id="amount" placeholder="0" inputmode="numeric">
 
-<div class="card">
+    <label>Payment Mode</label>
+    <div class="mode-toggle">
+      <div class="mode-btn" id="cashBtn" onclick="setMode('Cash')">💵 Cash</div>
+      <div class="mode-btn" id="onlineBtn" onclick="setMode('Online')">💳 Online</div>
+    </div>
 
-<h3 id="user"></h3>
+    <button class="save-btn" onclick="saveEntry()">Save Entry</button>
+    <div class="msg" id="msg"></div>
+  </div>
 
-<select id="flat">
-
-<option>A101</option>
-<option>A102</option>
-<option>B101</option>
-<option>C101</option>
-<option>D101</option>
-<option>E101</option>
-<option>F101</option>
-<option>G101</option>
-<option>H101</option>
-<option>I101</option>
-<option>J101</option>
-<option>K101</option>
-
-</select>
-
-<input id="name" placeholder="Name">
-
-<input type="date" id="date">
-
-<input id="amount" type="number" placeholder="Amount">
-
-<select id="mode">
-
-<option>Cash</option>
-
-<option>Online</option>
-
-</select>
-
-<button onclick="saveEntry()">
-
-Save Entry
-
-</button>
-
-<button onclick="logout()">
-
-Logout
-
-</button>
+  <!-- ENTRIES LIST -->
+  <div class="card">
+    <div class="section-title">
+      Entries <span class="count" id="entryCount">0</span>
+    </div>
+    <div class="search-box">
+      <input type="text" id="search" placeholder="Flat ya naam se search karo..." oninput="renderEntries()">
+    </div>
+    <div id="entriesList"></div>
+    <div class="totals" id="totalsBar" style="display:none;">
+      <span>Total</span>
+      <span id="totalAmount">0</span>
+    </div>
+    <button class="export-btn" id="excelBtn" onclick="exportExcel()" style="border-color:#1a7f37;color:#1a7f37;margin-top:10px;">📊 Export Excel (Date-wise)</button>
+    <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
 
 </div>
 
-<div class="card">
+<script>
+let mode = "Cash";
+let entries = [];
+const STORAGE_KEY = 'jwing-entries';
 
-<h3>Entries</h3>
+const WINGS = ["A","B","C","D","E","F","G","H","I","J","K"];
 
-<div id="entries"></div>
+function buildWingList(){
+  const sel = document.getElementById('wingNo');
+  WINGS.forEach(w => {
+    const opt = document.createElement('option');
+    opt.value = w;
+    opt.textContent = w + " Wing";
+    sel.appendChild(opt);
+  });
+}
 
-</div>
+function buildFlatList(){
+  const wing = document.getElementById('wingNo').value || WINGS[0];
+  const sel = document.getElementById('flatNo');
+  sel.innerHTML = '';
+  for(let floor=1; floor<=11; floor++){
+    for(let unit=1; unit<=4; unit++){
+      const flat = wing + floor + String(unit).padStart(2,'0');
+      const opt = document.createElement('option');
+      opt.value = flat;
+      opt.textContent = flat;
+      sel.appendChild(opt);
+    }
+  }
+}
 
-</div>
+function setMode(m){
+  mode = m;
+  document.getElementById('cashBtn').className = 'mode-btn' + (m==='Cash' ? ' active-cash' : '');
+  document.getElementById('onlineBtn').className = 'mode-btn' + (m==='Online' ? ' active-online' : '');
+}
+
+function todayStr(){
+  const d = new Date();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return d.getFullYear() + '-' + mm + '-' + dd;
+}
+
+function loadEntries(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    entries = raw ? JSON.parse(raw) : [];
+  }catch(e){
+    entries = [];
+  }
+  renderEntries();
+}
+
+function persistEntries(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  }catch(e){
+    console.error('Storage error', e);
+  }
+}
+
+function saveEntry(){
+  const flat = document.getElementById('flatNo').value;
+  const name = document.getElementById('name').value.trim();
+  const date = document.getElementById('date').value || todayStr();
+  const amount = parseFloat(document.getElementById('amount').value);
+  const msg = document.getElementById('msg');
+
+  if(!name){
+    msg.style.color = '#c0392b';
+    msg.textContent = 'Naam bharo';
+    return;
+  }
+  if(!amount || amount <= 0){
+    msg.style.color = '#c0392b';
+    msg.textContent = 'Amount sahi bharo';
+    return;
+  }
+
+  const entry = {
+    id: Date.now(),
+    flat, name, date, amount, mode
+  };
+  entries.unshift(entry);
+  persistEntries();
+
+  msg.style.color = '#1a7f37';
+  msg.textContent = '✓ ' + flat + ' ki entry save ho gayi';
+  document.getElementById('name').value = '';
+  document.getElementById('amount').value = '';
+  document.getElementById('date').value = '';
+  setMode('Cash');
+
+  renderEntries();
+  setTimeout(()=>{ msg.textContent=''; }, 2500);
+}
+
+function deleteEntry(id){
+  entries = entries.filter(e => e.id !== id);
+  persistEntries();
+  renderEntries();
+}
+
+function renderEntries(){
+  const list = document.getElementById('entriesList');
+  const search = document.getElementById('search').value.toLowerCase();
+  const filtered = entries.filter(e =>
+    e.flat.toLowerCase().includes(search) || e.name.toLowerCase().includes(search)
+  );
+
+  document.getElementById('entryCount').textContent = entries.length;
+
+  if(filtered.length === 0){
+    list.innerHTML = '<div class="empty">Koi entry nahi mili</div>';
+    document.getElementById('totalsBar').style.display = 'none';
+    return;
+  }
+
+  let total = 0;
+  list.innerHTML = filtered.map(e => {
+    total += e.amount;
+    return `
+      <div class="entry">
+        <button class="del-btn" onclick="deleteEntry(${e.id})">Delete</button>
+        <div class="top-row">
+          <span class="flat">${e.flat} — ${escapeHtml(e.name)}</span>
+        </div>
+        <div class="meta">
+          <span>${e.date}</span>
+          <span class="badge ${e.mode==='Cash'?'cash':'online'}">${e.mode}</span>
+          <span class="amount">₹${e.amount.toLocaleString('en-IN')}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('totalsBar').style.display = 'flex';
+  document.getElementById('totalAmount').textContent = '₹' + total.toLocaleString('en-IN');
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function exportExcel(){
+  if(entries.length === 0){
+    alert('Koi entry nahi hai export karne ke liye');
+    return;
+  }
+  if(typeof XLSX === 'undefined'){
+    alert('Excel library load nahi hui, thodi der baad try karo ya internet check karo');
+    return;
+  }
+
+  // date-wise sort (oldest to newest); undated/blank dates go last
+  const sorted = entries.slice().sort((a,b) => {
+    if(!a.date) return 1;
+    if(!b.date) return -1;
+    return a.date.localeCompare(b.date);
+  });
+
+  const rows = sorted.map(e => ({
+    "Date": e.date,
+    "Wing": e.flat.charAt(0),
+    "Flat No": e.flat,
+    "Name": e.name,
+    "Amount": e.amount,
+    "Payment Mode": e.mode
+  }));
+
+  const total = sorted.reduce((s,e)=> s + e.amount, 0);
+  rows.push({ "Date":"", "Wing":"", "Flat No":"", "Name":"TOTAL", "Amount": total, "Payment Mode":"" });
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:12},{wch:8},{wch:10},{wch:22},{wch:12},{wch:14}];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Payments");
+
+  const today = todayStr();
+  XLSX.writeFile(wb, `AK_Wing_Payments_${today}.xlsx`);
+}
+
+function exportCSV(){
+  if(entries.length === 0){
+    alert('Koi entry nahi hai export karne ke liye');
+    return;
+  }
+  let csv = 'Flat No,Name,Date,Amount,Payment Mode\n';
+  entries.slice().reverse().forEach(e=>{
+    csv += `${e.flat},"${e.name}",${e.date},${e.amount},${e.mode}\n`;
+  });
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'jwing_payments.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+buildWingList();
+buildFlatList();
+setMode('Cash');
+loadEntries();
+</script>
 
 </body>
 </html>
