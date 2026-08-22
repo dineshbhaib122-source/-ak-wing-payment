@@ -1,0 +1,3099 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<title>A-K Wing - Payment Entry</title>
+
+<style>
+:root{
+  --primary:#4472C4;
+  --primary-dark:#2e5395;
+  --bg:#f4f6fb;
+  --card:#ffffff;
+  --border:#dfe3ec;
+  --text:#1f2430;
+  --muted:#6b7280;
+  --green:#1a7f37;
+  --red:#c0392b;
+  --orange:#d98200;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  padding-bottom:40px;
+}
+
+header{
+  background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+  color:#fff;
+  padding:20px 16px 24px;
+  text-align:center;
+  position:relative;
+}
+
+header h1{
+  margin:0;
+  font-size:1.3rem;
+}
+
+header p{
+  margin:4px 0 0;
+  font-size:.85rem;
+  opacity:.9;
+}
+
+.lockIconBtn{
+  position:absolute;
+  top:14px;
+  right:14px;
+  background:rgba(255,255,255,.15);
+  border:none;
+  color:#fff;
+  font-size:.9rem;
+  padding:7px 10px;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.container{
+  max-width:560px;
+  margin:-16px auto 0;
+  padding:0 12px;
+}
+
+.card{
+  background:var(--card);
+  border-radius:14px;
+  box-shadow:0 2px 10px rgba(0,0,0,.08);
+  padding:16px;
+  margin-bottom:16px;
+  border:1px solid var(--border);
+}
+
+label{
+  display:block;
+  font-size:.85rem;
+  font-weight:600;
+  color:var(--muted);
+  margin:12px 0 6px;
+}
+
+label:first-of-type{
+  margin-top:0;
+}
+
+select,
+input{
+  width:100%;
+  padding:12px;
+  font-size:1rem;
+  border:1.5px solid var(--border);
+  border-radius:10px;
+  background:#fafbfe;
+  color:var(--text);
+}
+
+select:focus,
+input:focus{
+  outline:none;
+  border-color:var(--primary);
+  background:#fff;
+}
+
+.mode-toggle{
+  display:flex;
+  gap:10px;
+  margin-top:6px;
+}
+
+.mode-btn{
+  flex:1;
+  text-align:center;
+  padding:12px;
+  border-radius:10px;
+  border:1.5px solid var(--border);
+  background:#fafbfe;
+  font-weight:600;
+  color:var(--muted);
+  cursor:pointer;
+}
+
+.mode-btn.active-cash{
+  background:#fff4dc;
+  border-color:#e0a800;
+  color:#8a6300;
+}
+
+.mode-btn.active-online{
+  background:#e3f0ff;
+  border-color:var(--primary);
+  color:var(--primary-dark);
+}
+
+.save-btn{
+  width:100%;
+  margin-top:18px;
+  padding:14px;
+  background:var(--primary);
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  font-size:1.05rem;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.save-btn:active{
+  background:var(--primary-dark);
+}
+
+.save-btn.secondary{
+  background:#fff;
+  border:1.5px solid var(--primary);
+  color:var(--primary-dark);
+}
+
+.msg{
+  text-align:center;
+  font-size:.85rem;
+  margin-top:10px;
+  min-height:18px;
+  color:var(--green);
+  font-weight:600;
+}
+
+.section-title{
+  font-size:1rem;
+  font-weight:700;
+  margin:0 0 10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.section-title .count{
+  font-size:.8rem;
+  color:var(--muted);
+  font-weight:500;
+}
+
+.search-box{
+  margin-bottom:10px;
+}
+
+.entry{
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:11px 12px;
+  margin-bottom:8px;
+  background:#fafbfe;
+  position:relative;
+}
+
+.entry .top-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:5px;
+  padding-right:50px;
+}
+
+.entry .flat{
+  font-weight:700;
+  color:var(--primary-dark);
+  font-size:.95rem;
+}
+
+.entry .amount{
+  font-weight:700;
+  font-size:.95rem;
+}
+
+.entry .meta{
+  font-size:.82rem;
+  color:var(--muted);
+  display:flex;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:5px;
+}
+
+.badge{
+  display:inline-block;
+  padding:3px 8px;
+  border-radius:20px;
+  font-size:.72rem;
+  font-weight:700;
+}
+
+.badge.cash{
+  background:#fff4dc;
+  color:#8a6300;
+}
+
+.badge.online{
+  background:#e3f0ff;
+  color:var(--primary-dark);
+}
+
+.badge.pending{
+  background:#fdecea;
+  color:var(--red);
+}
+
+.badge.clear{
+  background:#e6f4ea;
+  color:var(--green);
+}
+
+.del-btn{
+  position:absolute;
+  top:8px;
+  right:10px;
+  background:none;
+  border:none;
+  color:var(--red);
+  font-size:.78rem;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.totals{
+  display:flex;
+  justify-content:space-between;
+  padding:12px 4px 0;
+  font-size:.9rem;
+  font-weight:700;
+  border-top:1px dashed var(--border);
+  margin-top:6px;
+}
+
+.empty{
+  text-align:center;
+  color:var(--muted);
+  font-size:.85rem;
+  padding:20px 0;
+}
+
+.export-btn{
+  width:100%;
+  padding:12px;
+  background:#fff;
+  border:1.5px solid var(--primary);
+  color:var(--primary-dark);
+  border-radius:10px;
+  font-weight:700;
+  margin-top:10px;
+  cursor:pointer;
+}
+
+.flat-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px 8px;
+  border-bottom:1px solid var(--border);
+  font-size:.85rem;
+}
+
+.flat-row:last-child{
+  border-bottom:none;
+}
+
+.flat-row .fname{
+  font-weight:700;
+  color:var(--primary-dark);
+}
+
+.flat-row .sub{
+  color:var(--muted);
+  font-size:.78rem;
+  margin-top:3px;
+}
+
+.flat-row .right{
+  text-align:right;
+}
+
+.wing-total-bar{
+  display:flex;
+  justify-content:space-between;
+  background:#eef2fb;
+  padding:10px 12px;
+  border-radius:10px;
+  font-size:.82rem;
+  font-weight:700;
+  margin-bottom:10px;
+  flex-wrap:wrap;
+  gap:6px;
+}
+
+/* HISTORY */
+
+.history-summary{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:12px;
+}
+
+.history-box{
+  background:#f7f9fd;
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:10px 6px;
+  text-align:center;
+}
+
+.history-box .label{
+  font-size:.72rem;
+  color:var(--muted);
+  margin:0 0 4px;
+}
+
+.history-box .value{
+  font-size:.9rem;
+  font-weight:700;
+}
+
+.history-date-title{
+  margin-top:14px;
+  padding:10px 12px;
+  background:#eef2fb;
+  border-radius:10px;
+  font-size:.85rem;
+  font-weight:700;
+}
+
+.clear-filter{
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:9px;
+  color:var(--muted);
+  font-weight:600;
+  cursor:pointer;
+}
+
+/* SETTINGS */
+
+.setting-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  padding:10px 0;
+  border-bottom:1px solid var(--border);
+}
+
+.setting-row:last-child{
+  border-bottom:none;
+}
+
+.setting-info{
+  flex:1;
+}
+
+.setting-name{
+  font-weight:700;
+  font-size:.9rem;
+}
+
+.setting-desc{
+  color:var(--muted);
+  font-size:.75rem;
+  margin-top:2px;
+}
+
+.small-btn{
+  padding:9px 12px;
+  border:1px solid var(--primary);
+  background:#fff;
+  color:var(--primary-dark);
+  border-radius:8px;
+  font-weight:700;
+}
+
+/* LOCK */
+
+.lock-overlay{
+  position:fixed;
+  inset:0;
+  background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+  padding:20px;
+}
+
+.lock-box{
+  background:#fff;
+  border-radius:16px;
+  padding:24px 20px;
+  width:100%;
+  max-width:340px;
+  text-align:center;
+  box-shadow:0 10px 35px rgba(0,0,0,.2);
+}
+
+.lock-box h2{
+  margin:0 0 6px;
+  font-size:1.1rem;
+}
+
+.lock-box p{
+  margin:0 0 16px;
+  font-size:.82rem;
+  color:var(--muted);
+}
+
+.lock-box input{
+  text-align:center;
+  letter-spacing:6px;
+  font-size:1.3rem;
+  margin-bottom:10px;
+}
+
+.lock-error{
+  color:var(--red);
+  font-size:.8rem;
+  min-height:16px;
+  margin-bottom:6px;
+  font-weight:600;
+}
+
+.hidden{
+  display:none !important;
+}
+
+@media(max-width:420px){
+
+  .history-summary{
+    grid-template-columns:1fr;
+  }
+
+}
+</style>
+</head>
+
+<body>
+
+<!-- ================= LOCK SCREEN ================= -->
+
+<div class="lock-overlay" id="lockOverlay">
+
+  <div class="lock-box">
+
+    <h2 id="lockTitle">App Locked</h2>
+
+    <p id="lockSubtitle">
+      PIN daalo continue karne ke liye
+    </p>
+
+    <input
+      type="password"
+      id="pinInput1"
+      inputmode="numeric"
+      maxlength="6"
+      placeholder="PIN"
+    >
+
+    <input
+      type="password"
+      id="pinInput2"
+      inputmode="numeric"
+      maxlength="6"
+      placeholder="PIN dobara"
+      class="hidden"
+    >
+
+    <div
+      class="lock-error"
+      id="lockError">
+    </div>
+
+    <button
+      class="save-btn"
+      id="lockSubmitBtn"
+      onclick="handleLockSubmit()">
+      Unlock
+    </button>
+
+  </div>
+
+</div>
+
+
+<!-- ================= HEADER ================= -->
+
+<header>
+
+  <button
+    class="lockIconBtn"
+    onclick="lockApp()">
+    🔒 Lock
+  </button>
+
+  <h1>A–K Wing — Payment Entry</h1>
+
+  <p>
+    Wing aur Flat select karo, entry bharo, save karo
+  </p>
+
+</header>
+
+
+<div class="container">
+
+
+<!-- ================= ENTRY FORM ================= -->
+
+<div class="card">
+
+  <label for="wingNo">Wing</label>
+
+  <select
+    id="wingNo"
+    onchange="buildFlatList()">
+  </select>
+
+
+  <label for="flatNo">Flat No</label>
+
+  <select
+    id="flatNo"
+    onchange="showFlatHint()">
+  </select>
+
+  <div
+    class="msg"
+    id="flatHint"
+    style="color:var(--muted);min-height:14px;">
+  </div>
+
+
+  <label for="name">Name</label>
+
+  <input
+    type="text"
+    id="name"
+    placeholder="Resident ka naam"
+    autocomplete="off"
+  >
+
+
+  <label for="date">Date</label>
+
+  <input
+    type="date"
+    id="date"
+  >
+
+
+  <label for="amount">Amount</label>
+
+  <input
+    type="number"
+    id="amount"
+    placeholder="0"
+    inputmode="numeric"
+    min="1"
+  >
+
+
+  <label>Payment Mode</label>
+
+  <div class="mode-toggle">
+
+    <div
+      class="mode-btn"
+      id="cashBtn"
+      onclick="setMode('Cash')">
+      💵 Cash
+    </div>
+
+    <div
+      class="mode-btn"
+      id="onlineBtn"
+      onclick="setMode('Online')">
+      💳 Online
+    </div>
+
+  </div>
+
+
+  <button
+    class="save-btn"
+    onclick="saveEntry()">
+    Save Entry
+  </button>
+
+  <div
+    class="msg"
+    id="msg">
+  </div>
+
+</div>
+
+
+<!-- ================= DUE AMOUNT ================= -->
+
+<div class="card">
+
+  <div class="section-title">
+    Due Amount Set Karo
+    <span class="count">Per Flat</span>
+  </div>
+
+
+  <label for="dueWing">
+    Wing
+  </label>
+
+  <select
+    id="dueWing"
+    onchange="buildDueFlatList()">
+  </select>
+
+
+  <label for="dueFlat">
+    Flat No
+  </label>
+
+  <select
+    id="dueFlat">
+  </select>
+
+
+  <label for="dueAmount">
+    Due Amount (₹)
+  </label>
+
+  <input
+    type="number"
+    id="dueAmount"
+    placeholder="0"
+    inputmode="numeric"
+    min="1"
+  >
+
+
+  <button
+    class="save-btn secondary"
+    onclick="saveDue()">
+    Save Due Amount
+  </button>
+
+  <div
+    class="msg"
+    id="dueMsg">
+  </div>
+
+</div>
+
+
+<!-- ================= WING SUMMARY ================= -->
+
+<div class="card">
+
+  <div class="section-title">
+    Wing-wise Summary
+  </div>
+
+
+  <label for="viewWing">
+    Wing dekho
+  </label>
+
+  <select
+    id="viewWing"
+    onchange="renderWingSummary()">
+  </select>
+
+
+  <div
+    class="wing-total-bar"
+    id="wingTotalBar">
+  </div>
+
+
+  <div id="wingFlatsList"></div>
+
+</div>
+
+
+<!-- ================= OLD DATA ================= -->
+
+<div class="card">
+
+  <div class="section-title">
+
+    📅 Old Data / Date-wise History
+
+    <span
+      class="count"
+      id="historyCount">
+      0
+    </span>
+
+  </div>
+
+
+  <label for="historyDate">
+    Date select karo
+  </label>
+
+  <input
+    type="date"
+    id="historyDate"
+    onchange="renderHistory()"
+  >
+
+
+  <button
+    class="clear-filter"
+    onclick="showAllHistory()">
+    🔄 Sabhi Dates Dikhao
+  </button>
+
+
+  <div
+    class="history-summary"
+    id="historySummary">
+  </div>
+
+
+  <div
+    class="history-date-title"
+    id="historyTitle">
+  </div>
+
+
+  <div id="historyList"></div>
+
+</div>
+
+
+<!-- ================= ENTRIES ================= -->
+
+<div class="card">
+
+  <div class="section-title">
+
+    Entries
+
+    <span
+      class="count"
+      id="entryCount">
+      0
+    </span>
+
+  </div>
+
+
+  <div class="search-box">
+
+    <input
+      type="text"
+      id="search"
+      placeholder="Flat, naam ya date se search karo..."
+      oninput="renderEntries()"
+      autocomplete="off"
+    >
+
+  </div>
+
+
+  <div id="entriesList"></div>
+
+
+  <div
+    class="totals"
+    id="totalsBar"
+    style="display:none;">
+
+    <span>Total</span>
+
+    <span id="totalAmount">
+      ₹0
+    </span>
+
+  </div>
+
+
+  <button
+    class="export-btn"
+    onclick="exportExcel()"
+    style="border-color:#1a7f37;color:#1a7f37;">
+    📊 Export Excel
+  </button>
+
+
+  <button
+    class="export-btn"
+    onclick="exportCSV()">
+    ⬇ Export CSV
+  </button>
+
+</div>
+
+
+<!-- ================= SETTINGS ================= -->
+
+<div class="card">
+
+  <div class="section-title">
+    ⚙️ Security Settings
+  </div>
+
+
+  <div class="setting-row">
+
+    <div class="setting-info">
+
+      <div class="setting-name">
+        🔑 Change PIN
+      </div>
+
+      <div class="setting-desc">
+        App ka security PIN change karo
+      </div>
+
+    </div>
+
+    <button
+      class="small-btn"
+      onclick="changePin()">
+      Change
+    </button>
+
+  </div>
+
+
+  <div class="setting-row">
+
+    <div class="setting-info">
+
+      <div class="setting-name">
+        ⏱️ Auto Lock
+      </div>
+
+      <div class="setting-desc">
+        Inactivity ke baad app automatically lock hoga
+      </div>
+
+    </div>
+
+    <select
+      id="autoLockSelect"
+      style="width:120px;padding:8px;"
+      onchange="saveAutoLock()">
+
+      <option value="0">
+        Off
+      </option>
+
+      <option value="1">
+        1 Minute
+      </option>
+
+      <option value="5">
+        5 Minutes
+      </option>
+
+      <option value="10">
+        10 Minutes
+      </option>
+
+    </select>
+
+  </div>
+
+
+  <div class="setting-row">
+
+    <div class="setting-info">
+
+      <div class="setting-name">
+        🧹 Delete All Data
+      </div>
+
+      <div class="setting-desc">
+        Saari entries aur due data delete
+      </div>
+
+    </div>
+
+    <button
+      class="small-btn"
+      style="border-color:var(--red);color:var(--red);"
+      onclick="deleteAllData()">
+      Delete
+    </button>
+
+  </div>
+
+</div>
+
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   DATABASE / STORAGE
+========================================================= */
+
+let mode = "Cash";
+
+let entries = [];
+
+let dues = {};
+
+const STORAGE_KEY = "jwing-entries";
+
+const DUES_KEY = "jwing-dues";
+
+const PIN_KEY = "jwing-pin";
+
+const AUTOLOCK_KEY = "jwing-autolock";
+
+const WINGS = [
+  "A","B","C","D","E","F","G","H","I","J","K"
+];
+
+let autoLockTimer = null;
+
+
+/* =========================================================
+   PIN
+========================================================= */
+
+function getPin(){
+
+  return localStorage.getItem(PIN_KEY) || "";
+
+}
+
+
+function initLock(){
+
+  const overlay =
+    document.getElementById("lockOverlay");
+
+  const pin2 =
+    document.getElementById("pinInput2");
+
+  const title =
+    document.getElementById("lockTitle");
+
+  const sub =
+    document.getElementById("lockSubtitle");
+
+  const btn =
+    document.getElementById("lockSubmitBtn");
+
+
+  overlay.classList.remove("hidden");
+
+  document.getElementById("pinInput1").value = "";
+
+  pin2.value = "";
+
+  document.getElementById("lockError").textContent = "";
+
+
+  if(!getPin()){
+
+    title.textContent = "PIN Set Karo";
+
+    sub.textContent =
+      "Naya 4-6 digit PIN banao";
+
+    pin2.classList.remove("hidden");
+
+    btn.textContent = "PIN Save Karo";
+
+    btn.onclick = setupPin;
+
+  }else{
+
+    title.textContent = "App Locked";
+
+    sub.textContent =
+      "PIN daalo continue karne ke liye";
+
+    pin2.classList.add("hidden");
+
+    btn.textContent = "Unlock";
+
+    btn.onclick = handleLockSubmit;
+
+  }
+
+
+  document.getElementById("pinInput1").focus();
+
+}
+
+
+function setupPin(){
+
+  const p1 =
+    document.getElementById("pinInput1")
+    .value
+    .trim();
+
+  const p2 =
+    document.getElementById("pinInput2")
+    .value
+    .trim();
+
+  const err =
+    document.getElementById("lockError");
+
+
+  if(!/^\d{4,6}$/.test(p1)){
+
+    err.textContent =
+      "4-6 digit ka PIN daalo";
+
+    return;
+
+  }
+
+
+  if(p1 !== p2){
+
+    err.textContent =
+      "Dono PIN match nahi ho rahe";
+
+    return;
+
+  }
+
+
+  localStorage.setItem(PIN_KEY,p1);
+
+  document
+    .getElementById("lockOverlay")
+    .classList.add("hidden");
+
+  startAutoLock();
+
+}
+
+
+function handleLockSubmit(){
+
+  const val =
+    document.getElementById("pinInput1")
+    .value
+    .trim();
+
+  const err =
+    document.getElementById("lockError");
+
+
+  if(val === getPin()){
+
+    document
+      .getElementById("lockOverlay")
+      .classList.add("hidden");
+
+    document.getElementById("pinInput1").value = "";
+
+    startAutoLock();
+
+  }else{
+
+    err.textContent =
+      "Galat PIN, dobara try karo";
+
+    document.getElementById("pinInput1").value = "";
+
+  }
+
+}
+
+
+function lockApp(){
+
+  clearAutoLock();
+
+  initLock();
+
+}
+
+
+function askPinFor(actionLabel){
+
+  const entered =
+    window.prompt(
+      "PIN daalo " +
+      actionLabel +
+      " ke liye:"
+    );
+
+
+  if(entered === null)
+    return false;
+
+
+  if(entered.trim() === getPin())
+    return true;
+
+
+  alert("Galat PIN");
+
+  return false;
+
+}
+
+
+/* =========================================================
+   CHANGE PIN
+========================================================= */
+
+function changePin(){
+
+  if(!getPin()){
+
+    initLock();
+
+    return;
+
+  }
+
+
+  const oldPin =
+    prompt("Current PIN daalo:");
+
+  if(oldPin === null)
+    return;
+
+
+  if(oldPin.trim() !== getPin()){
+
+    alert("Current PIN galat hai");
+
+    return;
+
+  }
+
+
+  const newPin =
+    prompt("Naya 4-6 digit PIN daalo:");
+
+  if(newPin === null)
+    return;
+
+
+  if(!/^\d{4,6}$/.test(newPin)){
+
+    alert("PIN 4-6 digit ka hona chahiye");
+
+    return;
+
+  }
+
+
+  const confirmPin =
+    prompt("Naya PIN dobara daalo:");
+
+  if(confirmPin === null)
+    return;
+
+
+  if(newPin !== confirmPin){
+
+    alert("PIN match nahi ho raha");
+
+    return;
+
+  }
+
+
+  localStorage.setItem(
+    PIN_KEY,
+    newPin
+  );
+
+
+  alert("✓ PIN successfully change ho gaya");
+
+}
+
+
+/* =========================================================
+   AUTO LOCK
+========================================================= */
+
+function getAutoLock(){
+
+  return Number(
+    localStorage.getItem(AUTOLOCK_KEY) || "0"
+  );
+
+}
+
+
+function saveAutoLock(){
+
+  const value =
+    Number(
+      document.getElementById(
+        "autoLockSelect"
+      ).value
+    );
+
+
+  localStorage.setItem(
+    AUTOLOCK_KEY,
+    value
+  );
+
+
+  startAutoLock();
+
+}
+
+
+function clearAutoLock(){
+
+  if(autoLockTimer){
+
+    clearTimeout(autoLockTimer);
+
+    autoLockTimer = null;
+
+  }
+
+}
+
+
+function startAutoLock(){
+
+  clearAutoLock();
+
+
+  const minutes =
+    getAutoLock();
+
+
+  if(!minutes)
+    return;
+
+
+  autoLockTimer =
+    setTimeout(()=>{
+
+      lockApp();
+
+    },minutes * 60 * 1000);
+
+}
+
+
+function resetAutoLock(){
+
+  if(
+    document
+      .getElementById("lockOverlay")
+      .classList
+      .contains("hidden")
+  ){
+
+    startAutoLock();
+
+  }
+
+}
+
+
+["click","touchstart","keydown"].forEach(eventName=>{
+
+  document.addEventListener(
+    eventName,
+    resetAutoLock,
+    {passive:true}
+  );
+
+});
+
+
+/* =========================================================
+   WING / FLATS
+========================================================= */
+
+function buildWingList(){
+
+  [
+    "wingNo",
+    "dueWing",
+    "viewWing"
+  ].forEach(id=>{
+
+    const sel =
+      document.getElementById(id);
+
+    sel.innerHTML = "";
+
+
+    if(id === "viewWing"){
+
+      const opt =
+        document.createElement("option");
+
+      opt.value = "ALL";
+
+      opt.textContent =
+        "Sabhi Wings";
+
+      sel.appendChild(opt);
+
+    }
+
+
+    WINGS.forEach(w=>{
+
+      const opt =
+        document.createElement("option");
+
+      opt.value = w;
+
+      opt.textContent =
+        w + " Wing";
+
+      sel.appendChild(opt);
+
+    });
+
+  });
+
+}
+
+
+function flatsForWing(wing){
+
+  const list = [];
+
+
+  for(let floor=1;floor<=11;floor++){
+
+    for(let unit=1;unit<=4;unit++){
+
+      list.push(
+        wing +
+        floor +
+        String(unit).padStart(2,"0")
+      );
+
+    }
+
+  }
+
+
+  return list;
+
+}
+
+
+function buildFlatList(){
+
+  const wing =
+    document.getElementById("wingNo").value ||
+    WINGS[0];
+
+  const sel =
+    document.getElementById("flatNo");
+
+
+  sel.innerHTML = "";
+
+
+  flatsForWing(wing).forEach(flat=>{
+
+    const opt =
+      document.createElement("option");
+
+    opt.value = flat;
+
+    opt.textContent = flat;
+
+    sel.appendChild(opt);
+
+  });
+
+
+  showFlatHint();
+
+}
+
+
+function buildDueFlatList(){
+
+  const wing =
+    document.getElementById("dueWing").value ||
+    WINGS[0];
+
+  const sel =
+    document.getElementById("dueFlat");
+
+
+  sel.innerHTML = "";
+
+
+  flatsForWing(wing).forEach(flat=>{
+
+    const opt =
+      document.createElement("option");
+
+    opt.value = flat;
+
+    opt.textContent =
+      flat +
+      (
+        dues[flat]
+        ? " (Due: ₹" +
+          Number(dues[flat])
+          .toLocaleString("en-IN") +
+          ")"
+        : ""
+      );
+
+    sel.appendChild(opt);
+
+  });
+
+}
+
+
+function showFlatHint(){
+
+  const flat =
+    document.getElementById("flatNo").value;
+
+  const hint =
+    document.getElementById("flatHint");
+
+
+  if(!flat){
+
+    hint.textContent = "";
+
+    return;
+
+  }
+
+
+  const s =
+    getFlatSummary(flat);
+
+
+  if(s.due > 0){
+
+    hint.textContent =
+      "Due: ₹" +
+      s.due.toLocaleString("en-IN") +
+      " | Paid: ₹" +
+      s.totalPaid.toLocaleString("en-IN") +
+      " | Pending: ₹" +
+      s.pending.toLocaleString("en-IN");
+
+  }else if(s.totalPaid > 0){
+
+    hint.textContent =
+      "Ab tak paid: ₹" +
+      s.totalPaid.toLocaleString("en-IN") +
+      " (Due set nahi hai)";
+
+  }else{
+
+    hint.textContent = "";
+
+  }
+
+}
+
+
+function setMode(m){
+
+  mode = m;
+
+
+  document.getElementById("cashBtn").className =
+    "mode-btn" +
+    (
+      m === "Cash"
+      ? " active-cash"
+      : ""
+    );
+
+
+  document.getElementById("onlineBtn").className =
+    "mode-btn" +
+    (
+      m === "Online"
+      ? " active-online"
+      : ""
+    );
+
+}
+
+
+/* =========================================================
+   DATE
+========================================================= */
+
+function todayStr(){
+
+  const d =
+    new Date();
+
+
+  const mm =
+    String(d.getMonth()+1)
+    .padStart(2,"0");
+
+
+  const dd =
+    String(d.getDate())
+    .padStart(2,"0");
+
+
+  return (
+    d.getFullYear() +
+    "-" +
+    mm +
+    "-" +
+    dd
+  );
+
+}
+
+
+function formatDate(date){
+
+  if(!date)
+    return "-";
+
+
+  const p =
+    String(date).split("-");
+
+
+  if(p.length !== 3)
+    return date;
+
+
+  return (
+    p[2] +
+    "-" +
+    p[1] +
+    "-" +
+    p[0]
+  );
+
+}
+
+
+/* =========================================================
+   STORAGE
+========================================================= */
+
+function loadEntries(){
+
+  try{
+
+    const raw =
+      localStorage.getItem(
+        STORAGE_KEY
+      );
+
+    entries =
+      raw
+      ? JSON.parse(raw)
+      : [];
+
+
+    if(!Array.isArray(entries))
+      entries = [];
+
+  }catch(e){
+
+    entries = [];
+
+  }
+
+
+  try{
+
+    const raw =
+      localStorage.getItem(
+        DUES_KEY
+      );
+
+    dues =
+      raw
+      ? JSON.parse(raw)
+      : {};
+
+
+    if(
+      typeof dues !== "object" ||
+      dues === null
+    ){
+
+      dues = {};
+
+    }
+
+  }catch(e){
+
+    dues = {};
+
+  }
+
+
+  renderEntries();
+
+  renderWingSummary();
+
+  renderHistory();
+
+}
+
+
+function persistEntries(){
+
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(entries)
+  );
+
+}
+
+
+function persistDues(){
+
+  localStorage.setItem(
+    DUES_KEY,
+    JSON.stringify(dues)
+  );
+
+}
+
+
+/* =========================================================
+   SAVE ENTRY
+========================================================= */
+
+function saveEntry(){
+
+  const flat =
+    document.getElementById("flatNo").value;
+
+  const name =
+    document.getElementById("name")
+    .value
+    .trim();
+
+  const date =
+    document.getElementById("date").value ||
+    todayStr();
+
+  const amount =
+    Number(
+      document.getElementById("amount").value
+    );
+
+  const msg =
+    document.getElementById("msg");
+
+
+  if(!name){
+
+    msg.style.color =
+      "#c0392b";
+
+    msg.textContent =
+      "Naam bharo";
+
+    return;
+
+  }
+
+
+  if(!amount || amount <= 0){
+
+    msg.style.color =
+      "#c0392b";
+
+    msg.textContent =
+      "Amount sahi bharo";
+
+    return;
+
+  }
+
+
+  const entry = {
+
+    id:
+      Date.now() +
+      Math.floor(Math.random()*1000),
+
+    flat:flat,
+
+    name:name,
+
+    date:date,
+
+    amount:amount,
+
+    mode:mode
+
+  };
+
+
+  entries.unshift(entry);
+
+  persistEntries();
+
+
+  msg.style.color =
+    "#1a7f37";
+
+  msg.textContent =
+    "✓ " +
+    flat +
+    " ki entry save ho gayi";
+
+
+  document.getElementById("name").value = "";
+
+  document.getElementById("amount").value = "";
+
+  document.getElementById("date").value =
+    todayStr();
+
+
+  setMode("Cash");
+
+
+  renderEntries();
+
+  renderWingSummary();
+
+  renderHistory();
+
+  showFlatHint();
+
+
+  setTimeout(()=>{
+
+    msg.textContent = "";
+
+  },2500);
+
+}
+
+
+/* =========================================================
+   DELETE ONE ENTRY
+========================================================= */
+
+function deleteEntry(id){
+
+  if(!askPinFor("entry delete karne"))
+    return;
+
+
+  if(
+    !confirm(
+      "Pakka delete karna hai ye entry?"
+    )
+  ){
+
+    return;
+
+  }
+
+
+  entries =
+    entries.filter(
+      e => e.id !== id
+    );
+
+
+  persistEntries();
+
+  renderEntries();
+
+  renderWingSummary();
+
+  renderHistory();
+
+}
+
+
+/* =========================================================
+   DELETE ALL
+========================================================= */
+
+function deleteAllData(){
+
+  if(!askPinFor("saara data delete karne"))
+    return;
+
+
+  const confirmation =
+    prompt(
+      'Confirmation ke liye "DELETE" likho:'
+    );
+
+
+  if(confirmation !== "DELETE"){
+
+    alert("Data delete nahi hua");
+
+    return;
+
+  }
+
+
+  entries = [];
+
+  dues = {};
+
+
+  localStorage.removeItem(
+    STORAGE_KEY
+  );
+
+  localStorage.removeItem(
+    DUES_KEY
+  );
+
+
+  renderEntries();
+
+  renderWingSummary();
+
+  renderHistory();
+
+  buildDueFlatList();
+
+  showFlatHint();
+
+
+  alert(
+    "✓ Saara payment aur due data delete ho gaya"
+  );
+
+}
+
+
+/* =========================================================
+   DUE
+========================================================= */
+
+function saveDue(){
+
+  const flat =
+    document.getElementById("dueFlat").value;
+
+  const amt =
+    Number(
+      document.getElementById("dueAmount").value
+    );
+
+  const msg =
+    document.getElementById("dueMsg");
+
+
+  if(!amt || amt <= 0){
+
+    msg.style.color =
+      "#c0392b";
+
+    msg.textContent =
+      "Sahi due amount bharo";
+
+    return;
+
+  }
+
+
+  dues[flat] = amt;
+
+  persistDues();
+
+
+  msg.style.color =
+    "#1a7f37";
+
+  msg.textContent =
+    "✓ " +
+    flat +
+    " ka due ₹" +
+    amt.toLocaleString("en-IN") +
+    " set ho gaya";
+
+
+  document.getElementById(
+    "dueAmount"
+  ).value = "";
+
+
+  buildDueFlatList();
+
+  renderWingSummary();
+
+  showFlatHint();
+
+
+  setTimeout(()=>{
+
+    msg.textContent = "";
+
+  },2500);
+
+}
+
+
+/* =========================================================
+   FLAT SUMMARY
+========================================================= */
+
+function getFlatSummary(flat){
+
+  let cash = 0;
+
+  let online = 0;
+
+
+  entries.forEach(e=>{
+
+    if(e.flat === flat){
+
+      const amount =
+        Number(e.amount) || 0;
+
+
+      if(e.mode === "Cash")
+        cash += amount;
+
+      else
+        online += amount;
+
+    }
+
+  });
+
+
+  const totalPaid =
+    cash + online;
+
+
+  const due =
+    Number(dues[flat]) || 0;
+
+
+  const pending =
+    Math.max(
+      due - totalPaid,
+      0
+    );
+
+
+  const extra =
+    totalPaid > due
+    ? totalPaid - due
+    : 0;
+
+
+  return {
+    flat,
+    cash,
+    online,
+    totalPaid,
+    due,
+    pending,
+    extra
+  };
+
+}
+
+
+function allFlatsWithData(){
+
+  const set =
+    new Set();
+
+
+  entries.forEach(
+    e => set.add(e.flat)
+  );
+
+
+  Object.keys(dues).forEach(
+    f => set.add(f)
+  );
+
+
+  return Array.from(set);
+
+}
+
+
+/* =========================================================
+   RENDER ENTRIES
+========================================================= */
+
+function renderEntries(){
+
+  const list =
+    document.getElementById(
+      "entriesList"
+    );
+
+
+  const search =
+    document.getElementById(
+      "search"
+    )
+    .value
+    .toLowerCase()
+    .trim();
+
+
+  const filtered =
+    entries.filter(e=>{
+
+      return (
+
+        String(e.flat)
+          .toLowerCase()
+          .includes(search)
+
+        ||
+
+        String(e.name)
+          .toLowerCase()
+          .includes(search)
+
+        ||
+
+        String(e.date)
+          .toLowerCase()
+          .includes(search)
+
+      );
+
+    });
+
+
+  document.getElementById(
+    "entryCount"
+  ).textContent =
+    entries.length;
+
+
+  if(filtered.length === 0){
+
+    list.innerHTML =
+      '<div class="empty">Koi entry nahi mili</div>';
+
+    document.getElementById(
+      "totalsBar"
+    ).style.display =
+      "none";
+
+    return;
+
+  }
+
+
+  let total = 0;
+
+
+  list.innerHTML =
+    filtered.map(e=>{
+
+      const amount =
+        Number(e.amount) || 0;
+
+
+      total += amount;
+
+
+      return `
+
+        <div class="entry">
+
+          <button
+            class="del-btn"
+            onclick="deleteEntry(${e.id})">
+            Delete
+          </button>
+
+          <div class="top-row">
+
+            <span class="flat">
+
+              ${escapeHtml(e.flat)}
+              —
+              ${escapeHtml(e.name)}
+
+            </span>
+
+          </div>
+
+          <div class="meta">
+
+            <span>
+              ${formatDate(e.date)}
+            </span>
+
+            <span class="badge ${
+              e.mode === "Cash"
+              ? "cash"
+              : "online"
+            }">
+
+              ${escapeHtml(e.mode)}
+
+            </span>
+
+            <span class="amount">
+
+              ₹${amount.toLocaleString("en-IN")}
+
+            </span>
+
+          </div>
+
+        </div>
+
+      `;
+
+    }).join("");
+
+
+  document.getElementById(
+    "totalsBar"
+  ).style.display =
+    "flex";
+
+
+  document.getElementById(
+    "totalAmount"
+  ).textContent =
+    "₹" +
+    total.toLocaleString("en-IN");
+
+}
+
+
+/* =========================================================
+   WING SUMMARY
+========================================================= */
+
+function renderWingSummary(){
+
+  const viewWing =
+    document.getElementById(
+      "viewWing"
+    ).value;
+
+
+  const wings =
+    viewWing === "ALL"
+    ? WINGS
+    : [viewWing];
+
+
+  let flats =
+    allFlatsWithData()
+    .filter(f=>
+      wings.includes(
+        String(f).charAt(0)
+      )
+    );
+
+
+  flats.sort();
+
+
+  const bar =
+    document.getElementById(
+      "wingTotalBar"
+    );
+
+
+  const list =
+    document.getElementById(
+      "wingFlatsList"
+    );
+
+
+  if(flats.length === 0){
+
+    bar.innerHTML = "";
+
+    list.innerHTML =
+      '<div class="empty">Is wing me abhi koi entry ya due nahi hai</div>';
+
+    return;
+
+  }
+
+
+  let sumCash = 0;
+
+  let sumOnline = 0;
+
+  let sumPending = 0;
+
+
+  const rows =
+    flats.map(flat=>{
+
+      const s =
+        getFlatSummary(flat);
+
+
+      sumCash += s.cash;
+
+      sumOnline += s.online;
+
+      sumPending += s.pending;
+
+
+      const lastEntry =
+        entries.find(
+          e => e.flat === flat
+        );
+
+
+      const name =
+        lastEntry
+        ? lastEntry.name
+        : "";
+
+
+      let badge = "";
+
+
+      if(s.due > 0){
+
+        badge =
+          s.pending > 0
+
+          ? `<span class="badge pending">
+              Pending ₹${s.pending.toLocaleString("en-IN")}
+             </span>`
+
+          : `<span class="badge clear">
+              Clear
+             </span>`;
+
+      }
+
+
+      return `
+
+        <div class="flat-row">
+
+          <div>
+
+            <div class="fname">
+
+              ${escapeHtml(flat)}
+              ${
+                name
+                ? " — " +
+                  escapeHtml(name)
+                : ""
+              }
+
+            </div>
+
+            <div class="sub">
+
+              Cash ₹${s.cash.toLocaleString("en-IN")}
+              ·
+              Online ₹${s.online.toLocaleString("en-IN")}
+
+              ${
+                s.due
+                ? " · Due ₹" +
+                  s.due.toLocaleString("en-IN")
+                : ""
+              }
+
+              ${
+                s.extra
+                ? " · Extra ₹" +
+                  s.extra.toLocaleString("en-IN")
+                : ""
+              }
+
+            </div>
+
+          </div>
+
+          <div class="right">
+
+            ${badge}
+
+          </div>
+
+        </div>
+
+      `;
+
+    }).join("");
+
+
+  bar.innerHTML = `
+
+    <span>
+      Cash: ₹${sumCash.toLocaleString("en-IN")}
+    </span>
+
+    <span>
+      Online: ₹${sumOnline.toLocaleString("en-IN")}
+    </span>
+
+    <span>
+      Pending: ₹${sumPending.toLocaleString("en-IN")}
+    </span>
+
+  `;
+
+
+  list.innerHTML = rows;
+
+}
+
+
+/* =========================================================
+   OLD DATA / HISTORY
+========================================================= */
+
+function renderHistory(){
+
+  const selectedDate =
+    document.getElementById(
+      "historyDate"
+    ).value;
+
+
+  let filtered;
+
+
+  if(selectedDate){
+
+    filtered =
+      entries.filter(
+        e => e.date === selectedDate
+      );
+
+  }else{
+
+    filtered =
+      entries.slice();
+
+  }
+
+
+  filtered.sort((a,b)=>{
+
+    const dateCompare =
+      String(b.date)
+      .localeCompare(
+        String(a.date)
+      );
+
+
+    if(dateCompare !== 0)
+      return dateCompare;
+
+
+    return Number(b.id) -
+           Number(a.id);
+
+  });
+
+
+  document.getElementById(
+    "historyCount"
+  ).textContent =
+    filtered.length;
+
+
+  let cash = 0;
+
+  let online = 0;
+
+  let total = 0;
+
+
+  filtered.forEach(e=>{
+
+    const amount =
+      Number(e.amount) || 0;
+
+
+    total += amount;
+
+
+    if(e.mode === "Cash")
+      cash += amount;
+
+    else
+      online += amount;
+
+  });
+
+
+  document.getElementById(
+    "historySummary"
+  ).innerHTML = `
+
+    <div class="history-box">
+
+      <div class="label">
+        Entries
+      </div>
+
+      <div class="value">
+        ${filtered.length}
+      </div>
+
+    </div>
+
+    <div class="history-box">
+
+      <div class="label">
+        Cash
+      </div>
+
+      <div class="value">
+        ₹${cash.toLocaleString("en-IN")}
+      </div>
+
+    </div>
+
+    <div class="history-box">
+
+      <div class="label">
+        Online
+      </div>
+
+      <div class="value">
+        ₹${online.toLocaleString("en-IN")}
+      </div>
+
+    </div>
+
+  `;
+
+
+  document.getElementById(
+    "historyTitle"
+  ).textContent =
+
+    selectedDate
+
+    ? "📅 " +
+      formatDate(selectedDate) +
+      " — Total ₹" +
+      total.toLocaleString("en-IN")
+
+    : "📅 All Old Entries — Total ₹" +
+      total.toLocaleString("en-IN");
+
+
+  const list =
+    document.getElementById(
+      "historyList"
+    );
+
+
+  if(filtered.length === 0){
+
+    list.innerHTML =
+      '<div class="empty">Is date ki koi entry nahi mili</div>';
+
+    return;
+
+  }
+
+
+  list.innerHTML =
+    filtered.map(e=>`
+
+      <div class="entry">
+
+        <button
+          class="del-btn"
+          onclick="deleteEntry(${e.id})">
+          Delete
+        </button>
+
+        <div class="top-row">
+
+          <span class="flat">
+
+            ${escapeHtml(e.flat)}
+            —
+            ${escapeHtml(e.name)}
+
+          </span>
+
+        </div>
+
+        <div class="meta">
+
+          <span>
+            ${formatDate(e.date)}
+          </span>
+
+          <span class="badge ${
+            e.mode === "Cash"
+            ? "cash"
+            : "online"
+          }">
+
+            ${escapeHtml(e.mode)}
+
+          </span>
+
+          <span class="amount">
+
+            ₹${Number(e.amount)
+              .toLocaleString("en-IN")}
+
+          </span>
+
+        </div>
+
+      </div>
+
+    `).join("");
+
+}
+
+
+function showAllHistory(){
+
+  document.getElementById(
+    "historyDate"
+  ).value = "";
+
+
+  renderHistory();
+
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
+
+function escapeHtml(value){
+
+  return String(value ?? "")
+    .replace(
+      /[&<>"']/g,
+      c => ({
+
+        "&":"&amp;",
+        "<":"&lt;",
+        ">":"&gt;",
+        '"':"&quot;",
+        "'":"&#39;"
+
+      }[c])
+    );
+
+}
+
+
+/* =========================================================
+   EXCEL
+========================================================= */
+
+function exportExcel(){
+
+  if(entries.length === 0){
+
+    alert(
+      "Koi entry nahi hai export karne ke liye"
+    );
+
+    return;
+
+  }
+
+
+  if(typeof XLSX === "undefined"){
+
+    alert(
+      "Excel library load nahi hui. Internet check karo."
+    );
+
+    return;
+
+  }
+
+
+  const sorted =
+    entries
+    .slice()
+    .sort((a,b)=>
+      String(a.date)
+        .localeCompare(
+          String(b.date)
+        )
+    );
+
+
+  const paymentRows =
+    sorted.map(e=>({
+
+      "Date":
+        e.date,
+
+      "Wing":
+        String(e.flat).charAt(0),
+
+      "Flat No":
+        e.flat,
+
+      "Name":
+        e.name,
+
+      "Amount":
+        Number(e.amount),
+
+      "Payment Mode":
+        e.mode
+
+    }));
+
+
+  const total =
+    sorted.reduce(
+      (sum,e)=>
+        sum +
+        (Number(e.amount)||0),
+      0
+    );
+
+
+  paymentRows.push({
+
+    "Date":"",
+    "Wing":"",
+    "Flat No":"",
+    "Name":"TOTAL",
+    "Amount":total,
+    "Payment Mode":""
+
+  });
+
+
+  const ws =
+    XLSX.utils.json_to_sheet(
+      paymentRows
+    );
+
+
+  ws["!cols"] = [
+
+    {wch:12},
+    {wch:8},
+    {wch:10},
+    {wch:22},
+    {wch:12},
+    {wch:14}
+
+  ];
+
+
+  /* FLAT SUMMARY */
+
+  const flatRows =
+    allFlatsWithData()
+    .sort()
+    .map(flat=>{
+
+      const s =
+        getFlatSummary(flat);
+
+
+      const lastEntry =
+        entries.find(
+          e => e.flat === flat
+        );
+
+
+      return {
+
+        "Wing":
+          String(flat).charAt(0),
+
+        "Flat No":
+          flat,
+
+        "Name":
+          lastEntry
+          ? lastEntry.name
+          : "",
+
+        "Cash Paid":
+          s.cash,
+
+        "Online Paid":
+          s.online,
+
+        "Total Paid":
+          s.totalPaid,
+
+        "Due Amount":
+          s.due,
+
+        "Pending":
+          s.pending,
+
+        "Extra":
+          s.extra
+
+      };
+
+    });
+
+
+  const ws2 =
+    XLSX.utils.json_to_sheet(
+      flatRows
+    );
+
+
+  ws2["!cols"] = [
+
+    {wch:8},
+    {wch:10},
+    {wch:22},
+    {wch:12},
+    {wch:12},
+    {wch:12},
+    {wch:12},
+    {wch:12},
+    {wch:12}
+
+  ];
+
+
+  /* DATE SUMMARY */
+
+  const dateMap = {};
+
+
+  entries.forEach(e=>{
+
+    if(!dateMap[e.date]){
+
+      dateMap[e.date] = {
+
+        entries:0,
+
+        cash:0,
+
+        online:0,
+
+        total:0
+
+      };
+
+    }
+
+
+    const amount =
+      Number(e.amount)||0;
+
+
+    dateMap[e.date].entries++;
+
+    dateMap[e.date].total +=
+      amount;
+
+
+    if(e.mode === "Cash"){
+
+      dateMap[e.date].cash +=
+        amount;
+
+    }else{
+
+      dateMap[e.date].online +=
+        amount;
+
+    }
+
+  });
+
+
+  const dateRows =
+    Object.keys(dateMap)
+    .sort()
+    .map(date=>({
+
+      "Date":
+        date,
+
+      "Entries":
+        dateMap[date].entries,
+
+      "Cash":
+        dateMap[date].cash,
+
+      "Online":
+        dateMap[date].online,
+
+      "Total":
+        dateMap[date].total
+
+    }));
+
+
+  const ws3 =
+    XLSX.utils.json_to_sheet(
+      dateRows
+    );
+
+
+  ws3["!cols"] = [
+
+    {wch:14},
+    {wch:10},
+    {wch:14},
+    {wch:14},
+    {wch:14}
+
+  ];
+
+
+  /* WORKBOOK */
+
+  const wb =
+    XLSX.utils.book_new();
+
+
+  XLSX.utils.book_append_sheet(
+    wb,
+    ws,
+    "Payments"
+  );
+
+
+  XLSX.utils.book_append_sheet(
+    wb,
+    ws2,
+    "Flat Summary"
+  );
+
+
+  XLSX.utils.book_append_sheet(
+    wb,
+    ws3,
+    "Date Summary"
+  );
+
+
+  XLSX.writeFile(
+    wb,
+    "AK_Wing_Payments_" +
+    todayStr() +
+    ".xlsx"
+  );
+
+}
+
+
+/* =========================================================
+   CSV
+========================================================= */
+
+function exportCSV(){
+
+  if(entries.length === 0){
+
+    alert(
+      "Koi entry nahi hai export karne ke liye"
+    );
+
+    return;
+
+  }
+
+
+  let csv =
+    "Flat No,Name,Date,Amount,Payment Mode\n";
+
+
+  entries
+    .slice()
+    .reverse()
+    .forEach(e=>{
+
+      const name =
+        String(e.name)
+        .replace(/"/g,'""');
+
+
+      csv +=
+        e.flat +
+        ',"' +
+        name +
+        '",' +
+        e.date +
+        "," +
+        e.amount +
+        "," +
+        e.mode +
+        "\n";
+
+    });
+
+
+  const blob =
+    new Blob(
+      [csv],
+      {
+        type:
+          "text/csv;charset=utf-8;"
+      }
+    );
+
+
+  const url =
+    URL.createObjectURL(blob);
+
+
+  const a =
+    document.createElement("a");
+
+
+  a.href = url;
+
+  a.download =
+    "AK_Wing_Payments.csv";
+
+
+  document.body.appendChild(a);
+
+  a.click();
+
+  document.body.removeChild(a);
+
+
+  URL.revokeObjectURL(url);
+
+}
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+buildWingList();
+
+buildFlatList();
+
+buildDueFlatList();
+
+setMode("Cash");
+
+document.getElementById("date").value =
+  todayStr();
+
+
+document.getElementById(
+  "autoLockSelect"
+).value =
+  String(getAutoLock());
+
+
+loadEntries();
+
+initLock();
+
+
+/* =========================================================
+   PIN ENTER KEY
+========================================================= */
+
+document
+  .getElementById("pinInput1")
+  .addEventListener(
+    "keydown",
+    function(e){
+
+      if(e.key === "Enter"){
+
+        document
+          .getElementById(
+            "lockSubmitBtn"
+          )
+          .click();
+
+      }
+
+    }
+  );
+
+
+document
+  .getElementById("pinInput2")
+  .addEventListener(
+    "keydown",
+    function(e){
+
+      if(e.key === "Enter"){
+
+        document
+          .getElementById(
+            "lockSubmitBtn"
+          )
+          .click();
+
+      }
+
+    }
+  );
+
+</script>
+
+</body>
+</html>
