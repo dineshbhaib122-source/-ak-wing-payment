@@ -466,6 +466,8 @@ input:focus{
   letter-spacing:6px;
   font-size:1.3rem;
   margin-bottom:10px;
+  -webkit-text-security:disc;
+  text-security:disc;
 }
 
 .lock-error{
@@ -505,18 +507,28 @@ input:focus{
     </p>
 
     <input
-      type="password"
+      type="tel"
       id="pinInput1"
       inputmode="numeric"
+      pattern="[0-9]*"
       maxlength="6"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
       placeholder="PIN"
     >
 
     <input
-      type="password"
+      type="tel"
       id="pinInput2"
       inputmode="numeric"
+      pattern="[0-9]*"
       maxlength="6"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
       placeholder="PIN dobara"
       class="hidden"
     >
@@ -3053,6 +3065,28 @@ initLock();
 /* =========================================================
    PIN ENTER KEY
 ========================================================= */
+
+[
+  "pinInput1",
+  "pinInput2"
+].forEach(id=>{
+
+  document
+    .getElementById(id)
+    .addEventListener(
+      "input",
+      function(){
+
+        this.value =
+          this.value
+          .replace(/\D/g,"")
+          .slice(0,6);
+
+      }
+    );
+
+});
+
 
 document
   .getElementById("pinInput1")
