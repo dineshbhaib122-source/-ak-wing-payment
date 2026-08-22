@@ -482,6 +482,45 @@ input:focus{
   display:none !important;
 }
 
+.print-only{
+  display:none;
+}
+
+@media print{
+
+  body > *:not(#printArea){
+    display:none !important;
+  }
+
+  #printArea{
+    display:block !important;
+  }
+
+  #printArea table{
+    width:100%;
+    border-collapse:collapse;
+  }
+
+  #printArea th,
+  #printArea td{
+    border:1px solid #999;
+    padding:6px 8px;
+    font-size:12px;
+    text-align:left;
+  }
+
+  #printArea h2{
+    margin-bottom:2px;
+  }
+
+  #printArea .meta{
+    color:#555;
+    font-size:12px;
+    margin-bottom:14px;
+  }
+
+}
+
 @media(max-width:420px){
 
   .history-summary{
@@ -745,6 +784,13 @@ input:focus{
 
   <div id="wingFlatsList"></div>
 
+  <button
+    class="export-btn"
+    onclick="exportWingSummaryPDF()"
+    style="border-color:#c0392b;color:#c0392b;">
+    🖨️ Wing Summary PDF
+  </button>
+
 </div>
 
 
@@ -964,6 +1010,11 @@ input:focus{
 
 </div>
 
+
+<div
+  id="printArea"
+  class="print-only">
+</div>
 
 <script>
 
@@ -3031,6 +3082,204 @@ function exportCSV(){
 
 
   URL.revokeObjectURL(url);
+
+}
+
+
+/* =========================================================
+   WING SUMMARY PDF (PRINT)
+========================================================= */
+
+function exportWingSummaryPDF(){
+
+  const viewWing =
+    document.getElementById(
+      "viewWing"
+    ).value;
+
+
+  const wings =
+    viewWing === "ALL"
+    ? WINGS
+    : [viewWing];
+
+
+  let flats =
+    allFlatsWithData()
+    .filter(f=>
+      wings.includes(
+        String(f).charAt(0)
+      )
+    );
+
+
+  flats.sort();
+
+
+  if(flats.length === 0){
+
+    alert(
+      "Is wing me abhi koi data nahi hai"
+    );
+
+    return;
+
+  }
+
+
+  let sumCash = 0;
+
+  let sumOnline = 0;
+
+  let sumDue = 0;
+
+  let sumPending = 0;
+
+
+  const rows =
+    flats.map(flat=>{
+
+      const s =
+        getFlatSummary(flat);
+
+
+      sumCash += s.cash;
+
+      sumOnline += s.online;
+
+      sumDue += s.due;
+
+      sumPending += s.pending;
+
+
+      const lastEntry =
+        entries.find(
+          e => e.flat === flat
+        );
+
+
+      const name =
+        lastEntry
+        ? lastEntry.name
+        : "";
+
+
+      const status =
+        s.due > 0
+
+        ? (
+            s.pending > 0
+            ? "Pending"
+            : "Clear"
+          )
+
+        : "-";
+
+
+      return `
+
+        <tr>
+
+          <td>${escapeHtml(flat)}</td>
+
+          <td>${escapeHtml(name)}</td>
+
+          <td>₹${s.cash.toLocaleString("en-IN")}</td>
+
+          <td>₹${s.online.toLocaleString("en-IN")}</td>
+
+          <td>₹${s.totalPaid.toLocaleString("en-IN")}</td>
+
+          <td>₹${s.due.toLocaleString("en-IN")}</td>
+
+          <td>₹${s.pending.toLocaleString("en-IN")}</td>
+
+          <td>${status}</td>
+
+        </tr>
+
+      `;
+
+    }).join("");
+
+
+  const title =
+    viewWing === "ALL"
+    ? "All Wings — Summary"
+    : viewWing + " Wing — Summary";
+
+
+  document.getElementById(
+    "printArea"
+  ).innerHTML = `
+
+    <h2>${escapeHtml(title)}</h2>
+
+    <div class="meta">
+      A–K Wing Payment Entry ·
+      Generated on ${formatDate(todayStr())}
+    </div>
+
+    <table>
+
+      <thead>
+
+        <tr>
+
+          <th>Flat</th>
+
+          <th>Name</th>
+
+          <th>Cash</th>
+
+          <th>Online</th>
+
+          <th>Total Paid</th>
+
+          <th>Due</th>
+
+          <th>Pending</th>
+
+          <th>Status</th>
+
+        </tr>
+
+      </thead>
+
+      <tbody>
+
+        ${rows}
+
+        <tr>
+
+          <td colspan="2"><b>Total</b></td>
+
+          <td><b>₹${sumCash.toLocaleString("en-IN")}</b></td>
+
+          <td><b>₹${sumOnline.toLocaleString("en-IN")}</b></td>
+
+          <td><b>₹${(sumCash+sumOnline).toLocaleString("en-IN")}</b></td>
+
+          <td><b>₹${sumDue.toLocaleString("en-IN")}</b></td>
+
+          <td><b>₹${sumPending.toLocaleString("en-IN")}</b></td>
+
+          <td></td>
+
+        </tr>
+
+      </tbody>
+
+    </table>
+
+  `;
+
+
+  setTimeout(()=>{
+
+    window.print();
+
+  },100);
 
 }
 
