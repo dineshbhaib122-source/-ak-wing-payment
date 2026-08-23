@@ -701,62 +701,6 @@ input:focus{
 </div>
 
 
-<!-- ================= DUE AMOUNT ================= -->
-
-<div class="card">
-
-  <div class="section-title">
-    Due Amount Set Karo
-    <span class="count">Per Flat</span>
-  </div>
-
-
-  <label for="dueWing">
-    Wing
-  </label>
-
-  <select
-    id="dueWing"
-    onchange="buildDueFlatList()">
-  </select>
-
-
-  <label for="dueFlat">
-    Flat No
-  </label>
-
-  <select
-    id="dueFlat">
-  </select>
-
-
-  <label for="dueAmount">
-    Due Amount (₹)
-  </label>
-
-  <input
-    type="number"
-    id="dueAmount"
-    placeholder="0"
-    inputmode="numeric"
-    min="1"
-  >
-
-
-  <button
-    class="save-btn secondary"
-    onclick="saveDue()">
-    Save Due Amount
-  </button>
-
-  <div
-    class="msg"
-    id="dueMsg">
-  </div>
-
-</div>
-
-
 <!-- ================= WING SUMMARY ================= -->
 
 <div class="card">
@@ -991,7 +935,7 @@ input:focus{
       </div>
 
       <div class="setting-desc">
-        Saari entries aur due data delete
+        Saari entries delete
       </div>
 
     </div>
@@ -1026,11 +970,7 @@ let mode = "Cash";
 
 let entries = [];
 
-let dues = {};
-
 const STORAGE_KEY = "jwing-entries";
-
-const DUES_KEY = "jwing-dues";
 
 const PIN_KEY = "jwing-pin";
 
@@ -1408,7 +1348,6 @@ function buildWingList(){
 
   [
     "wingNo",
-    "dueWing",
     "viewWing"
   ].forEach(id=>{
 
@@ -1509,44 +1448,6 @@ function buildFlatList(){
 }
 
 
-function buildDueFlatList(){
-
-  const wing =
-    document.getElementById("dueWing").value ||
-    WINGS[0];
-
-  const sel =
-    document.getElementById("dueFlat");
-
-
-  sel.innerHTML = "";
-
-
-  flatsForWing(wing).forEach(flat=>{
-
-    const opt =
-      document.createElement("option");
-
-    opt.value = flat;
-
-    opt.textContent =
-      flat +
-      (
-        dues[flat]
-        ? " (Due: ₹" +
-          Number(dues[flat])
-          .toLocaleString("en-IN") +
-          ")"
-        : ""
-      );
-
-    sel.appendChild(opt);
-
-  });
-
-}
-
-
 function showFlatHint(){
 
   const flat =
@@ -1569,22 +1470,11 @@ function showFlatHint(){
     getFlatSummary(flat);
 
 
-  if(s.due > 0){
-
-    hint.textContent =
-      "Due: ₹" +
-      s.due.toLocaleString("en-IN") +
-      " | Paid: ₹" +
-      s.totalPaid.toLocaleString("en-IN") +
-      " | Pending: ₹" +
-      s.pending.toLocaleString("en-IN");
-
-  }else if(s.totalPaid > 0){
+  if(s.totalPaid > 0){
 
     hint.textContent =
       "Ab tak paid: ₹" +
-      s.totalPaid.toLocaleString("en-IN") +
-      " (Due set nahi hai)";
+      s.totalPaid.toLocaleString("en-IN");
 
   }else{
 
@@ -1705,35 +1595,6 @@ function loadEntries(){
   }
 
 
-  try{
-
-    const raw =
-      localStorage.getItem(
-        DUES_KEY
-      );
-
-    dues =
-      raw
-      ? JSON.parse(raw)
-      : {};
-
-
-    if(
-      typeof dues !== "object" ||
-      dues === null
-    ){
-
-      dues = {};
-
-    }
-
-  }catch(e){
-
-    dues = {};
-
-  }
-
-
   renderEntries();
 
   renderWingSummary();
@@ -1748,16 +1609,6 @@ function persistEntries(){
   localStorage.setItem(
     STORAGE_KEY,
     JSON.stringify(entries)
-  );
-
-}
-
-
-function persistDues(){
-
-  localStorage.setItem(
-    DUES_KEY,
-    JSON.stringify(dues)
   );
 
 }
@@ -1943,15 +1794,9 @@ function deleteAllData(){
 
   entries = [];
 
-  dues = {};
-
 
   localStorage.removeItem(
     STORAGE_KEY
-  );
-
-  localStorage.removeItem(
-    DUES_KEY
   );
 
 
@@ -1961,82 +1806,12 @@ function deleteAllData(){
 
   renderHistory();
 
-  buildDueFlatList();
-
   showFlatHint();
 
 
   alert(
-    "✓ Saara payment aur due data delete ho gaya"
+    "✓ Saara payment data delete ho gaya"
   );
-
-}
-
-
-/* =========================================================
-   DUE
-========================================================= */
-
-function saveDue(){
-
-  const flat =
-    document.getElementById("dueFlat").value;
-
-  const amt =
-    Number(
-      document.getElementById("dueAmount").value
-    );
-
-  const msg =
-    document.getElementById("dueMsg");
-
-
-  if(!amt || amt <= 0){
-
-    msg.style.color =
-      "#c0392b";
-
-    msg.textContent =
-      "Sahi due amount bharo";
-
-    return;
-
-  }
-
-
-  dues[flat] = amt;
-
-  persistDues();
-
-
-  msg.style.color =
-    "#1a7f37";
-
-  msg.textContent =
-    "✓ " +
-    flat +
-    " ka due ₹" +
-    amt.toLocaleString("en-IN") +
-    " set ho gaya";
-
-
-  document.getElementById(
-    "dueAmount"
-  ).value = "";
-
-
-  buildDueFlatList();
-
-  renderWingSummary();
-
-  showFlatHint();
-
-
-  setTimeout(()=>{
-
-    msg.textContent = "";
-
-  },2500);
 
 }
 
@@ -2075,31 +1850,11 @@ function getFlatSummary(flat){
     cash + online;
 
 
-  const due =
-    Number(dues[flat]) || 0;
-
-
-  const pending =
-    Math.max(
-      due - totalPaid,
-      0
-    );
-
-
-  const extra =
-    totalPaid > due
-    ? totalPaid - due
-    : 0;
-
-
   return {
     flat,
     cash,
     online,
-    totalPaid,
-    due,
-    pending,
-    extra
+    totalPaid
   };
 
 }
@@ -2113,11 +1868,6 @@ function allFlatsWithData(){
 
   entries.forEach(
     e => set.add(e.flat)
-  );
-
-
-  Object.keys(dues).forEach(
-    f => set.add(f)
   );
 
 
@@ -2322,7 +2072,7 @@ function renderWingSummary(){
     bar.innerHTML = "";
 
     list.innerHTML =
-      '<div class="empty">Is wing me abhi koi entry ya due nahi hai</div>';
+      '<div class="empty">Is wing me abhi koi entry nahi hai</div>';
 
     return;
 
@@ -2332,8 +2082,6 @@ function renderWingSummary(){
   let sumCash = 0;
 
   let sumOnline = 0;
-
-  let sumPending = 0;
 
 
   const rows =
@@ -2347,8 +2095,6 @@ function renderWingSummary(){
 
       sumOnline += s.online;
 
-      sumPending += s.pending;
-
 
       const lastEntry =
         entries.find(
@@ -2360,25 +2106,6 @@ function renderWingSummary(){
         lastEntry
         ? lastEntry.name
         : "";
-
-
-      let badge = "";
-
-
-      if(s.due > 0){
-
-        badge =
-          s.pending > 0
-
-          ? `<span class="badge pending">
-              Pending ₹${s.pending.toLocaleString("en-IN")}
-             </span>`
-
-          : `<span class="badge clear">
-              Clear
-             </span>`;
-
-      }
 
 
       return `
@@ -2405,27 +2132,13 @@ function renderWingSummary(){
               ·
               Online ₹${s.online.toLocaleString("en-IN")}
 
-              ${
-                s.due
-                ? " · Due ₹" +
-                  s.due.toLocaleString("en-IN")
-                : ""
-              }
-
-              ${
-                s.extra
-                ? " · Extra ₹" +
-                  s.extra.toLocaleString("en-IN")
-                : ""
-              }
-
             </div>
 
           </div>
 
           <div class="right">
 
-            ${badge}
+            <b>₹${s.totalPaid.toLocaleString("en-IN")}</b>
 
           </div>
 
@@ -2447,7 +2160,7 @@ function renderWingSummary(){
     </span>
 
     <span>
-      Pending: ₹${sumPending.toLocaleString("en-IN")}
+      Total: ₹${(sumCash+sumOnline).toLocaleString("en-IN")}
     </span>
 
   `;
@@ -2841,16 +2554,7 @@ function exportExcel(){
           s.online,
 
         "Total Paid":
-          s.totalPaid,
-
-        "Due Amount":
-          s.due,
-
-        "Pending":
-          s.pending,
-
-        "Extra":
-          s.extra
+          s.totalPaid
 
       };
 
@@ -2868,9 +2572,6 @@ function exportExcel(){
     {wch:8},
     {wch:10},
     {wch:22},
-    {wch:12},
-    {wch:12},
-    {wch:12},
     {wch:12},
     {wch:12},
     {wch:12}
@@ -3131,10 +2832,6 @@ function exportWingSummaryPDF(){
 
   let sumOnline = 0;
 
-  let sumDue = 0;
-
-  let sumPending = 0;
-
 
   const rows =
     flats.map(flat=>{
@@ -3147,10 +2844,6 @@ function exportWingSummaryPDF(){
 
       sumOnline += s.online;
 
-      sumDue += s.due;
-
-      sumPending += s.pending;
-
 
       const lastEntry =
         entries.find(
@@ -3162,18 +2855,6 @@ function exportWingSummaryPDF(){
         lastEntry
         ? lastEntry.name
         : "";
-
-
-      const status =
-        s.due > 0
-
-        ? (
-            s.pending > 0
-            ? "Pending"
-            : "Clear"
-          )
-
-        : "-";
 
 
       return `
@@ -3189,12 +2870,6 @@ function exportWingSummaryPDF(){
           <td>₹${s.online.toLocaleString("en-IN")}</td>
 
           <td>₹${s.totalPaid.toLocaleString("en-IN")}</td>
-
-          <td>₹${s.due.toLocaleString("en-IN")}</td>
-
-          <td>₹${s.pending.toLocaleString("en-IN")}</td>
-
-          <td>${status}</td>
 
         </tr>
 
@@ -3236,12 +2911,6 @@ function exportWingSummaryPDF(){
 
           <th>Total Paid</th>
 
-          <th>Due</th>
-
-          <th>Pending</th>
-
-          <th>Status</th>
-
         </tr>
 
       </thead>
@@ -3259,12 +2928,6 @@ function exportWingSummaryPDF(){
           <td><b>₹${sumOnline.toLocaleString("en-IN")}</b></td>
 
           <td><b>₹${(sumCash+sumOnline).toLocaleString("en-IN")}</b></td>
-
-          <td><b>₹${sumDue.toLocaleString("en-IN")}</b></td>
-
-          <td><b>₹${sumPending.toLocaleString("en-IN")}</b></td>
-
-          <td></td>
 
         </tr>
 
@@ -3291,8 +2954,6 @@ function exportWingSummaryPDF(){
 buildWingList();
 
 buildFlatList();
-
-buildDueFlatList();
 
 setMode("Cash");
 
