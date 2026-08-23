@@ -834,8 +834,7 @@ function exportExcel(){
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Payments");
 
-  const today = todayStr();
-  XLSX.writeFile(wb, `AK_Wing_Payments_${today}.xlsx`);
+  XLSX.writeFile(wb, `AK_Wing_Payments.xlsx`);
 }
 
 function exportSummaryExcel(){
@@ -876,15 +875,24 @@ function exportSummaryExcel(){
   const total = sorted.reduce((s,e)=> s + e.amount, 0);
   rows.push({ "Flat No":"", "Name":"TOTAL", "Date":"", "Amount": total, "Payment Mode":"" });
 
-  const ws = XLSX.utils.json_to_sheet(rows);
+  const wingLabel = viewWing === 'ALL' ? 'AllWings' : (viewWing + 'Wing');
+  const titleText = (viewWing === 'ALL' ? 'ALL WINGS' : (viewWing.toUpperCase() + ' WING')) + ' - PAYMENT SUMMARY';
+
+  const aoa = [
+    [titleText],
+    [],
+    ["Flat No","Name","Date","Amount","Payment Mode"],
+    ...rows.map(r => [r["Flat No"], r["Name"], r["Date"], r["Amount"], r["Payment Mode"]])
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = [{wch:10},{wch:22},{wch:12},{wch:12},{wch:14}];
+  ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:4} }];
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Summary");
 
-  const today = todayStr();
-  const wingLabel = viewWing === 'ALL' ? 'AllWings' : (viewWing + 'Wing');
-  XLSX.writeFile(wb, `Wing_Summary_${wingLabel}_${today}.xlsx`);
+  XLSX.writeFile(wb, `Wing_Summary_${wingLabel}.xlsx`);
 }
 
 function exportCSV(){
