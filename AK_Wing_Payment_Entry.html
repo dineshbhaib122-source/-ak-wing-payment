@@ -30,9 +30,81 @@
     color:#fff;
     padding:20px 16px 24px;
     text-align:center;
+    position:relative;
   }
   header h1{margin:0;font-size:1.3rem;}
   header p{margin:4px 0 0;font-size:0.85rem;opacity:0.9;}
+
+  .lockIconBtn{
+    position:absolute;
+    top:14px;
+    right:14px;
+    background:rgba(255,255,255,.15);
+    border:none;
+    color:#fff;
+    font-size:0.9rem;
+    padding:7px 10px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+
+  .lock-overlay{
+    position:fixed;
+    inset:0;
+    background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+    padding:20px;
+  }
+  .lock-box{
+    background:#fff;
+    border-radius:16px;
+    padding:24px 20px;
+    width:100%;
+    max-width:340px;
+    text-align:center;
+    box-shadow:0 10px 35px rgba(0,0,0,.2);
+  }
+  .lock-box h2{margin:0 0 6px;font-size:1.1rem;}
+  .lock-box p{margin:0 0 16px;font-size:0.82rem;color:var(--muted);}
+  .lock-box input{
+    text-align:center;
+    letter-spacing:6px;
+    font-size:1.3rem;
+    margin-bottom:10px;
+    -webkit-text-security:disc;
+  }
+  .lock-error{
+    color:var(--red);
+    font-size:0.8rem;
+    min-height:16px;
+    margin-bottom:6px;
+    font-weight:600;
+  }
+  .hidden{display:none !important;}
+
+  .setting-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    padding:10px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .setting-row:last-child{border-bottom:none;}
+  .setting-info{flex:1;}
+  .setting-name{font-weight:700;font-size:0.9rem;}
+  .setting-desc{color:var(--muted);font-size:0.75rem;margin-top:2px;}
+  .small-btn{
+    padding:9px 12px;
+    border:1px solid var(--primary);
+    background:#fff;
+    color:var(--primary-dark);
+    border-radius:8px;
+    font-weight:700;
+  }
 
   .container{max-width:520px;margin:-16px auto 0;padding:0 12px;}
 
@@ -254,7 +326,26 @@
 </head>
 <body>
 
+<!-- LOCK SCREEN -->
+<div class="lock-overlay" id="lockOverlay">
+  <div class="lock-box">
+    <h2 id="lockTitle">App Locked</h2>
+    <p id="lockSubtitle">PIN daalo continue karne ke liye</p>
+
+    <input type="tel" id="pinInput1" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+      autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="PIN">
+
+    <input type="tel" id="pinInput2" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+      autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="PIN dobara" class="hidden">
+
+    <div class="lock-error" id="lockError"></div>
+
+    <button class="save-btn" id="lockSubmitBtn" onclick="handleLockSubmit()">Unlock</button>
+  </div>
+</div>
+
 <header>
+  <button class="lockIconBtn" onclick="lockApp()">🔒 Lock</button>
   <h1>A–K Wing — Payment Entry</h1>
   <p>Wing aur Flat select karo, entry bharo, save karo</p>
 </header>
@@ -316,14 +407,148 @@
     <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
   </div>
 
+  <!-- SETTINGS -->
+  <div class="card">
+    <div class="section-title">⚙️ Security Settings</div>
+
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-name">🔑 Change PIN</div>
+        <div class="setting-desc">App ka security PIN change karo</div>
+      </div>
+      <button class="small-btn" onclick="changePin()">Change</button>
+    </div>
+
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-name">🧹 Delete All Data</div>
+        <div class="setting-desc">Saari entries delete</div>
+      </div>
+      <button class="small-btn" style="border-color:var(--red);color:var(--red);" onclick="deleteAllData()">Delete</button>
+    </div>
+  </div>
+
 </div>
 
 <script>
 let mode = "Cash";
 let entries = [];
 const STORAGE_KEY = 'jwing-entries';
+const PIN_KEY = 'jwing-pin';
 
 const WINGS = ["A","B","C","D","E","F","G","H","I","J","K"];
+
+/* ============= PIN LOCK ============= */
+
+function getPin(){
+  return localStorage.getItem(PIN_KEY) || '';
+}
+
+function initLock(){
+  const overlay = document.getElementById('lockOverlay');
+  const pin2 = document.getElementById('pinInput2');
+  const title = document.getElementById('lockTitle');
+  const sub = document.getElementById('lockSubtitle');
+  const btn = document.getElementById('lockSubmitBtn');
+
+  overlay.classList.remove('hidden');
+  document.getElementById('pinInput1').value = '';
+  pin2.value = '';
+  document.getElementById('lockError').textContent = '';
+
+  if(!getPin()){
+    title.textContent = 'PIN Set Karo';
+    sub.textContent = 'Naya 4-6 digit PIN banao';
+    pin2.classList.remove('hidden');
+    btn.textContent = 'PIN Save Karo';
+    btn.onclick = setupPin;
+  }else{
+    title.textContent = 'App Locked';
+    sub.textContent = 'PIN daalo continue karne ke liye';
+    pin2.classList.add('hidden');
+    btn.textContent = 'Unlock';
+    btn.onclick = handleLockSubmit;
+  }
+
+  document.getElementById('pinInput1').focus();
+}
+
+function setupPin(){
+  const p1 = document.getElementById('pinInput1').value.trim();
+  const p2 = document.getElementById('pinInput2').value.trim();
+  const err = document.getElementById('lockError');
+
+  if(!/^\d{4,6}$/.test(p1)){
+    err.textContent = '4-6 digit ka PIN daalo';
+    return;
+  }
+  if(p1 !== p2){
+    err.textContent = 'Dono PIN match nahi ho rahe';
+    return;
+  }
+
+  localStorage.setItem(PIN_KEY, p1);
+  document.getElementById('lockOverlay').classList.add('hidden');
+}
+
+function handleLockSubmit(){
+  const val = document.getElementById('pinInput1').value.trim();
+  const err = document.getElementById('lockError');
+
+  if(val === getPin()){
+    document.getElementById('lockOverlay').classList.add('hidden');
+    document.getElementById('pinInput1').value = '';
+  }else{
+    err.textContent = 'Galat PIN, dobara try karo';
+    document.getElementById('pinInput1').value = '';
+  }
+}
+
+function lockApp(){
+  initLock();
+}
+
+function askPinFor(actionLabel){
+  const entered = window.prompt('PIN daalo ' + actionLabel + ' ke liye:');
+  if(entered === null) return false;
+  if(entered.trim() === getPin() && getPin() !== '') return true;
+  alert('Galat PIN');
+  return false;
+}
+
+function changePin(){
+  if(!getPin()){ initLock(); return; }
+
+  const oldPin = prompt('Current PIN daalo:');
+  if(oldPin === null) return;
+  if(oldPin.trim() !== getPin()){ alert('Current PIN galat hai'); return; }
+
+  const newPin = prompt('Naya 4-6 digit PIN daalo:');
+  if(newPin === null) return;
+  if(!/^\d{4,6}$/.test(newPin)){ alert('PIN 4-6 digit ka hona chahiye'); return; }
+
+  const confirmPin = prompt('Naya PIN dobara daalo:');
+  if(confirmPin === null) return;
+  if(newPin !== confirmPin){ alert('PIN match nahi ho raha'); return; }
+
+  localStorage.setItem(PIN_KEY, newPin);
+  alert('✓ PIN successfully change ho gaya');
+}
+
+[ "pinInput1", "pinInput2" ].forEach(id=>{
+  document.getElementById(id).addEventListener('input', function(){
+    this.value = this.value.replace(/\D/g,'').slice(0,6);
+  });
+});
+
+document.getElementById('pinInput1').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') document.getElementById('lockSubmitBtn').click();
+});
+document.getElementById('pinInput2').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') document.getElementById('lockSubmitBtn').click();
+});
+
+/* ============= WING / FLATS ============= */
 
 function buildWingList(){
   const sel = document.getElementById('wingNo');
@@ -434,10 +659,24 @@ function saveEntry(){
 }
 
 function deleteEntry(id){
+  if(!askPinFor('entry delete karne')) return;
+  if(!confirm('Pakka delete karna hai ye entry?')) return;
   entries = entries.filter(e => e.id !== id);
   persistEntries();
   renderEntries();
   renderWingSummary();
+}
+
+function deleteAllData(){
+  if(!askPinFor('saara data delete karne')) return;
+  const confirmation = prompt('Confirmation ke liye "DELETE" likho:');
+  if(confirmation !== 'DELETE'){ alert('Data delete nahi hua'); return; }
+
+  entries = [];
+  localStorage.removeItem(STORAGE_KEY);
+  renderEntries();
+  renderWingSummary();
+  alert('✓ Saara payment data delete ho gaya');
 }
 
 function renderEntries(){
@@ -609,6 +848,7 @@ buildWingList();
 buildFlatList();
 setMode('Cash');
 loadEntries();
+initLock();
 </script>
 
 </body>
