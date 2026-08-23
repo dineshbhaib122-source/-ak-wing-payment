@@ -873,7 +873,13 @@ function exportSummaryExcel(){
   }));
 
   const total = sorted.reduce((s,e)=> s + e.amount, 0);
-  rows.push({ "Flat No":"", "Name":"TOTAL", "Date":"", "Amount": total, "Payment Mode":"" });
+  const totalCash = sorted.filter(e => e.mode === 'Cash').reduce((s,e)=> s + e.amount, 0);
+  const totalOnline = sorted.filter(e => e.mode === 'Online').reduce((s,e)=> s + e.amount, 0);
+
+  rows.push({ "Flat No":"", "Name":"", "Date":"", "Amount":"", "Payment Mode":"" });
+  rows.push({ "Flat No":"", "Name":"TOTAL CASH", "Date":"", "Amount": totalCash, "Payment Mode":"" });
+  rows.push({ "Flat No":"", "Name":"TOTAL ONLINE", "Date":"", "Amount": totalOnline, "Payment Mode":"" });
+  rows.push({ "Flat No":"", "Name":"GRAND TOTAL", "Date":"", "Amount": total, "Payment Mode":"" });
 
   const wingLabel = viewWing === 'ALL' ? 'AllWings' : (viewWing + 'Wing');
   const titleText = (viewWing === 'ALL' ? 'ALL WINGS' : (viewWing.toUpperCase() + ' WING')) + ' - PAYMENT SUMMARY';
