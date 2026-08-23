@@ -388,6 +388,7 @@
 
     <div class="wing-total-bar" id="wingTotalBar"></div>
     <div id="wingFlatsList"></div>
+    <button class="export-btn" onclick="exportSummaryExcel()" style="border-color:#1a7f37;color:#1a7f37;">📊 Export Summary Excel (Flat No A-Z)</button>
   </div>
 
   <!-- ENTRIES LIST -->
@@ -728,6 +729,19 @@ function getFlatSummary(flat){
   return { flat, cash, online, totalPaid: cash + online };
 }
 
+function flatSortKey(flat){
+  const wing = String(flat).charAt(0);
+  const num = parseInt(String(flat).slice(1), 10) || 0;
+  return { wing, num };
+}
+
+function compareFlats(flatA, flatB){
+  const a = flatSortKey(flatA);
+  const b = flatSortKey(flatB);
+  if(a.wing !== b.wing) return a.wing.localeCompare(b.wing);
+  return a.num - b.num;
+}
+
 function allFlatsWithData(){
   const set = new Set();
   entries.forEach(e => set.add(e.flat));
@@ -739,7 +753,7 @@ function renderWingSummary(){
   const wings = viewWing === 'ALL' ? WINGS : [viewWing];
 
   let flats = allFlatsWithData().filter(f => wings.includes(String(f).charAt(0)));
-  flats.sort();
+  flats.sort(compareFlats);
 
   const bar = document.getElementById('wingTotalBar');
   const list = document.getElementById('wingFlatsList');
@@ -822,6 +836,55 @@ function exportExcel(){
 
   const today = todayStr();
   XLSX.writeFile(wb, `AK_Wing_Payments_${today}.xlsx`);
+}
+
+function exportSummaryExcel(){
+  if(entries.length === 0){
+    alert('Koi entry nahi hai export karne ke liye');
+    return;
+  }
+  if(typeof XLSX === 'undefined'){
+    alert('Excel library load nahi hui, thodi der baad try karo ya internet check karo');
+    return;
+  }
+
+  const viewWing = document.getElementById('viewWing').value || 'ALL';
+  const wings = viewWing === 'ALL' ? WINGS : [viewWing];
+  const filtered = entries.filter(e => wings.includes(String(e.flat).charAt(0)));
+
+  if(filtered.length === 0){
+    alert('Is wing me abhi koi entry nahi hai');
+    return;
+  }
+
+  // sort by Flat No in true numeric order: 101,102,103,104,201...1001,1002,1003,1004,1101...1104
+  const sorted = filtered.slice().sort((a,b) => {
+    if(a.flat !== b.flat) return compareFlats(a.flat, b.flat);
+    if(!a.date) return 1;
+    if(!b.date) return -1;
+    return a.date.localeCompare(b.date);
+  });
+
+  const rows = sorted.map(e => ({
+    "Flat No": e.flat,
+    "Name": e.name,
+    "Date": e.date,
+    "Amount": e.amount,
+    "Payment Mode": e.mode
+  }));
+
+  const total = sorted.reduce((s,e)=> s + e.amount, 0);
+  rows.push({ "Flat No":"", "Name":"TOTAL", "Date":"", "Amount": total, "Payment Mode":"" });
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:10},{wch:22},{wch:12},{wch:12},{wch:14}];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Summary");
+
+  const today = todayStr();
+  const wingLabel = viewWing === 'ALL' ? 'AllWings' : (viewWing + 'Wing');
+  XLSX.writeFile(wb, `Wing_Summary_${wingLabel}_${today}.xlsx`);
 }
 
 function exportCSV(){
