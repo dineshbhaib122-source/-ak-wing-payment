@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A–K Wing — Payment Entry</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f2f3f7;
+    color: #1a1a1a;
+  }
+  .header {
+    background: linear-gradient(135deg, #4a63b0, #3d51a0);
+    color: #fff;
+    padding: 28px 20px 60px;
+    text-align: center;
+  }
+  .header h1 { margin: 0 0 8px; font-size: 24px; }
+  .header p { margin: 0; opacity: 0.9; font-size: 14px; }
+  .card {
+    background: #fff;
+    max-width: 480px;
+    margin: -40px auto 24px;
+    border-radius: 16px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    padding: 20px;
+  }
+  .field { margin-bottom: 18px; }
+  label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; color: #333; }
+  select, input[type=text], input[type=date], input[type=number] {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid #d8dae0;
+    font-size: 16px;
+    background: #f8f9fb;
+    color: #111;
+  }
+  .mode-row { display: flex; gap: 12px; }
+  .mode-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 10px;
+    border: 2px solid #d8dae0;
+    background: #f8f9fb;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+  }
+  .mode-btn.active { border-color: #4a63b0; background: #eef1fb; color: #2e3f80; }
+  .save-btn {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 10px;
+    background: #4a63b0;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+  .save-btn:active { background: #3d51a0; }
+  .msg { text-align: center; font-size: 13px; margin-top: 10px; min-height: 16px; }
+  .msg.ok { color: #1a8a4a; }
+  .msg.err { color: #c53030; }
+
+  .section-title {
+    max-width: 480px;
+    margin: 0 auto 8px;
+    padding: 0 20px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #333;
+  }
+  .summary {
+    max-width: 480px;
+    margin: 0 auto 16px;
+    padding: 0 20px;
+    display: flex;
+    gap: 10px;
+  }
+  .summary .box {
+    flex: 1;
+    background: #fff;
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .summary .box .label { font-size: 12px; color: #888; }
+  .summary .box .value { font-size: 18px; font-weight: 700; margin-top: 4px; }
+
+  .list-wrap { max-width: 480px; margin: 0 auto 40px; padding: 0 20px; }
+  .entry {
+    background: #fff;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .entry .info { font-size: 14px; }
+  .entry .info .flat { font-weight: 700; }
+  .entry .info .sub { color: #888; font-size: 12px; margin-top: 2px; }
+  .entry .right { text-align: right; }
+  .entry .amount { font-weight: 700; font-size: 15px; }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 20px; margin-top: 4px; display: inline-block; }
+  .tag.cash { background: #fdf1d6; color: #8a6100; }
+  .tag.online { background: #dbeafe; color: #1e4e8c; }
+  .del-btn { border: none; background: none; color: #c53030; font-size: 12px; margin-top: 6px; cursor: pointer; }
+  .empty { text-align: center; color: #999; font-size: 14px; padding: 20px 0; }
+  .loading { text-align: center; color: #999; font-size: 14px; padding: 20px 0; }
+
+  #lockScreen {
+    position: fixed; inset: 0; background: #4a63b0;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 999; padding: 20px;
+  }
+  .lock-box {
+    background: #fff; border-radius: 16px; padding: 28px 24px;
+    max-width: 320px; width: 100%; text-align: center;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+  }
+  .lock-box h2 { margin: 0 0 6px; font-size: 18px; color: #222; }
+  .lock-box p { margin: 0 0 16px; font-size: 13px; color: #888; }
+  .lock-box input {
+    width: 100%; padding: 12px 14px; border-radius: 10px;
+    border: 1px solid #d8dae0; font-size: 18px; text-align: center;
+    letter-spacing: 4px; margin-bottom: 12px;
+  }
+  .lock-box button {
+    width: 100%; padding: 13px; border: none; border-radius: 10px;
+    background: #4a63b0; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+  }
+  .lock-err { color: #c53030; font-size: 13px; margin-top: 8px; min-height: 16px; }
+
+  #appContent { display: none; }
+
+  .export-btn {
+    width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #4a63b0;
+    background: #fff; color: #4a63b0; font-weight: 700; font-size: 14px; cursor: pointer;
+    margin-bottom: 16px;
+  }
+</style>
+</head>
+<body>
+
+<div id="lockScreen">
+  <div class="lock-box">
+    <h2>App locked</h2>
+    <p>Password daalo aage jaane ke liye</p>
+    <input type="password" id="pwInput" inputmode="numeric" maxlength="6" placeholder="••••">
+    <button id="pwSubmit">Unlock</button>
+    <div class="lock-err" id="pwErr"></div>
+  </div>
+</div>
+
+<div id="appContent">
+
+<div class="header">
+  <h1>A–K Wing — Payment Entry</h1>
+  <p>Wing aur Flat select karo, entry bharo, save karo</p>
+</div>
+
+<div class="card">
+  <div class="field">
+    <label>Wing</label>
+    <select id="wing"></select>
+  </div>
+
+  <div class="field">
+    <label>Flat No</label>
+    <select id="flat"></select>
+  </div>
+
+  <div class="field">
+    <label>Name</label>
+    <input type="text" id="name" placeholder="Resident ka naam">
+  </div>
+
+  <div class="field">
+    <label>Date</label>
+    <input type="date" id="date">
+  </div>
+
+  <div class="field">
+    <label>Amount</label>
+    <input type="number" id="amount" placeholder="0" min="0">
+  </div>
+
+  <div class="field">
+    <label>Payment Mode</label>
+    <div class="mode-row">
+      <button type="button" class="mode-btn active" id="modeCash">💵 Cash</button>
+      <button type="button" class="mode-btn" id="modeOnline">💳 Online</button>
+    </div>
+  </div>
+
+  <button class="save-btn" id="saveBtn">Save Entry</button>
+  <div class="msg" id="msg"></div>
+</div>
+
+<div class="section-title">Summary</div>
+<div class="summary">
+  <div class="box"><div class="label">Total entries</div><div class="value" id="sumCount">0</div></div>
+  <div class="box"><div class="label">Cash</div><div class="value" id="sumCash">₹0</div></div>
+  <div class="box"><div class="label">Online</div><div class="value" id="sumOnline">₹0</div></div>
+</div>
+
+<div class="section-title">Recent entries</div>
+<div class="list-wrap">
+  <button class="export-btn" id="exportBtn">⬇ Export Excel (wing-wise)</button>
+  <div id="entryList">
+    <div class="loading">Loading...</div>
+  </div>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-app-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+
+// ================================================
+// YAHA APNA FIREBASE CONFIG PASTE KARO
+// (Firebase console > Project settings > General >
+//  Your apps > SDK setup and configuration)
+// ================================================
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const CONFIG_NOT_SET = firebaseConfig.apiKey === "YOUR_API_KEY";
+let db = null;
+let entriesRef = null;
+
+if (!CONFIG_NOT_SET) {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+  entriesRef = db.collection("entries");
+}
+
+const WINGS = ["A","B","C","D","E","F","G","H","I","J","K"];
+const FLOORS = 11;
+const UNITS_PER_FLOOR = 4;
+const APP_PASSWORD = "8469";
+
+let paymentMode = "Cash";
+
+function buildFlats(wing) {
+  const flats = [];
+  for (let f = 1; f <= FLOORS; f++) {
+    for (let u = 1; u <= UNITS_PER_FLOOR; u++) {
+      flats.push(wing + f + "0" + u);
+    }
+  }
+  return flats;
+}
+
+const pwInput = document.getElementById("pwInput");
+const pwErr = document.getElementById("pwErr");
+function tryUnlock() {
+  if (pwInput.value === APP_PASSWORD) {
+    if (CONFIG_NOT_SET) {
+      pwErr.textContent = "Firebase config abhi add nahi hui hai — pehle wo daalo";
+      return;
+    }
+    document.getElementById("lockScreen").style.display = "none";
+    document.getElementById("appContent").style.display = "block";
+    startEntriesListener();
+  } else {
+    pwErr.textContent = "Galat password, dubara try karo";
+  }
+}
+document.getElementById("pwSubmit").addEventListener("click", tryUnlock);
+pwInput.addEventListener("keydown", e => { if (e.key === "Enter") tryUnlock(); });
+
+const wingSelect = document.getElementById("wing");
+const flatSelect = document.getElementById("flat");
+
+WINGS.forEach(w => {
+  const opt = document.createElement("option");
+  opt.value = w;
+  opt.textContent = w + " Wing";
+  wingSelect.appendChild(opt);
+});
+
+function refreshFlats() {
+  flatSelect.innerHTML = "";
+  buildFlats(wingSelect.value).forEach(fl => {
+    const opt = document.createElement("option");
+    opt.value = fl;
+    opt.textContent = fl;
+    flatSelect.appendChild(opt);
+  });
+}
+wingSelect.addEventListener("change", refreshFlats);
+refreshFlats();
+
+document.getElementById("date").valueAsDate = new Date();
+
+const modeCashBtn = document.getElementById("modeCash");
+const modeOnlineBtn = document.getElementById("modeOnline");
+modeCashBtn.addEventListener("click", () => {
+  paymentMode = "Cash";
+  modeCashBtn.classList.add("active");
+  modeOnlineBtn.classList.remove("active");
+});
+modeOnlineBtn.addEventListener("click", () => {
+  paymentMode = "Online";
+  modeOnlineBtn.classList.add("active");
+  modeCashBtn.classList.remove("active");
+});
+
+const msgEl = document.getElementById("msg");
+function showMsg(text, ok) {
+  msgEl.textContent = text;
+  msgEl.className = "msg " + (ok ? "ok" : "err");
+  setTimeout(() => { msgEl.textContent = ""; }, 2500);
+}
+
+function startEntriesListener() {
+  entriesRef.orderBy("savedAt", "desc").onSnapshot(snapshot => {
+    const entries = [];
+    snapshot.forEach(doc => {
+      entries.push(Object.assign({ id: doc.id }, doc.data()));
+    });
+    renderEntries(entries);
+  }, err => {
+    document.getElementById("entryList").innerHTML = '<div class="empty">Data load nahi ho paya. Firebase config check karo.</div>';
+  });
+}
+
+function renderEntries(entries) {
+  const listEl = document.getElementById("entryList");
+  const cashTotal = entries.filter(e => e.mode === "Cash").reduce((s, e) => s + Number(e.amount || 0), 0);
+  const onlineTotal = entries.filter(e => e.mode === "Online").reduce((s, e) => s + Number(e.amount || 0), 0);
+  document.getElementById("sumCount").textContent = entries.length;
+  document.getElementById("sumCash").textContent = "₹" + cashTotal.toLocaleString("en-IN");
+  document.getElementById("sumOnline").textContent = "₹" + onlineTotal.toLocaleString("en-IN");
+
+  if (entries.length === 0) {
+    listEl.innerHTML = '<div class="empty">Abhi koi entry nahi hai</div>';
+    return;
+  }
+
+  listEl.innerHTML = "";
+  entries.slice(0, 50).forEach(e => {
+    const div = document.createElement("div");
+    div.className = "entry";
+    div.innerHTML = `
+      <div class="info">
+        <div class="flat">${e.wing}${e.flat} — ${e.name || "—"}</div>
+        <div class="sub">${e.date || ""}</div>
+      </div>
+      <div class="right">
+        <div class="amount">₹${Number(e.amount || 0).toLocaleString("en-IN")}</div>
+        <span class="tag ${e.mode === "Cash" ? "cash" : "online"}">${e.mode}</span><br>
+        <button class="del-btn" data-key="${e.id}">Delete</button>
+      </div>
+    `;
+    listEl.appendChild(div);
+  });
+
+  listEl.querySelectorAll(".del-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-key");
+      try {
+        await entriesRef.doc(id).delete();
+      } catch (e) {
+        showMsg("Delete nahi ho paaya", false);
+      }
+    });
+  });
+}
+
+document.getElementById("saveBtn").addEventListener("click", async () => {
+  const wing = wingSelect.value;
+  const flat = flatSelect.value.replace(wing, "");
+  const name = document.getElementById("name").value.trim();
+  const date = document.getElementById("date").value;
+  const amount = document.getElementById("amount").value;
+
+  if (!name) { showMsg("Naam bharo", false); return; }
+  if (!date) { showMsg("Date select karo", false); return; }
+  if (!amount || Number(amount) <= 0) { showMsg("Sahi amount daalo", false); return; }
+
+  const record = {
+    wing: wing,
+    flat: flat,
+    name: name,
+    date: date,
+    amount: Number(amount),
+    mode: paymentMode,
+    savedAt: Date.now()
+  };
+
+  try {
+    await entriesRef.add(record);
+    showMsg("Entry save ho gayi ✓", true);
+    document.getElementById("name").value = "";
+    document.getElementById("amount").value = "";
+  } catch (e) {
+    showMsg("Save nahi ho paaya, dubara try karo", false);
+  }
+});
+
+async function getAllEntries() {
+  const snapshot = await entriesRef.orderBy("date", "asc").get();
+  const entries = [];
+  snapshot.forEach(doc => entries.push(Object.assign({ id: doc.id }, doc.data())));
+  return entries;
+}
+
+document.getElementById("exportBtn").addEventListener("click", async () => {
+  try {
+    const entries = await getAllEntries();
+    if (entries.length === 0) { showMsg("Export ke liye koi entry nahi hai", false); return; }
+
+    const wb = XLSX.utils.book_new();
+    WINGS.forEach(w => {
+      const wingEntries = entries.filter(e => e.wing === w);
+      if (wingEntries.length === 0) return;
+      const rows = wingEntries.map(e => ({
+        "Flat No": w + e.flat,
+        "Name": e.name,
+        "Date": e.date,
+        "Amount": Number(e.amount || 0),
+        "Payment Mode": e.mode
+      }));
+      const total = wingEntries.reduce((s, e) => s + Number(e.amount || 0), 0);
+      rows.push({ "Flat No": "", "Name": "", "Date": "", "Amount": total, "Payment Mode": "TOTAL" });
+      const ws = XLSX.utils.json_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, w + " Wing");
+    });
+
+    XLSX.writeFile(wb, "wing-payment-entries.xlsx");
+  } catch (e) {
+    showMsg("Export nahi ho paaya", false);
+  }
+});
+
+</script>
+</body>
+</html>
