@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<title>A–K Wing — Payment Entry</title>
+<style>
+:root{--primary:#4472C4;--dark:#2e5395;--bg:#f4f6fb;--card:#fff;--border:#dfe3ec;--text:#1f2430;--muted:#6b7280;--green:#1a7f37;--red:#c0392b}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);padding-bottom:35px}
+header{background:linear-gradient(135deg,var(--primary),var(--dark));color:#fff;padding:22px 14px 26px;text-align:center}header h1{margin:0;font-size:1.35rem}header p{margin:6px 0 0;font-size:.9rem}
+.container{max-width:620px;margin:-14px auto 0;padding:0 12px}.card{background:var(--card);border-radius:15px;box-shadow:0 2px 10px #00000012;padding:16px;margin-bottom:16px;border:1px solid var(--border)}
+label{display:block;font-size:.9rem;font-weight:700;color:var(--muted);margin:12px 0 6px}label:first-of-type{margin-top:0}
+select,input,button{font:inherit}select,input[type=text],input[type=date],input[type=number],input[type=file]{width:100%;padding:13px 12px;font-size:1rem;border:1.5px solid var(--border);border-radius:11px;background:#fafbfe;color:var(--text)}input[type=file]{font-size:.9rem}
+.mode-toggle{display:flex;gap:10px;margin-top:6px}.mode-btn{flex:1;text-align:center;padding:13px 8px;border-radius:11px;border:1.5px solid var(--border);background:#fafbfe;font-weight:700;color:var(--muted);cursor:pointer}
+.mode-btn.active-cash{background:#fff4dc;border-color:#e0a800;color:#8a6300}.mode-btn.active-online{background:#e3f0ff;border-color:var(--primary);color:var(--dark)}
+.primary-btn,.export-btn,.small-btn{width:100%;padding:14px;background:var(--primary);color:white;border:0;border-radius:11px;font-weight:800;margin-top:15px;cursor:pointer}
+.export-btn{padding:12px;background:#fff;border:1.5px solid var(--primary);color:var(--dark);margin-top:9px}.green-btn{border-color:var(--green);color:var(--green)}.small-btn{width:auto;margin:0;padding:10px 12px;font-size:.85rem}
+.msg{font-size:.88rem;margin-top:10px;min-height:18px;text-align:center;font-weight:700;color:var(--green)}
+.section-title{font-size:1.05rem;font-weight:800;margin:0 0 12px;display:flex;justify-content:space-between;align-items:center;gap:8px}.count{font-size:.85rem;color:var(--muted);font-weight:600}
+.entry{border:1px solid var(--border);border-radius:11px;padding:12px;margin-bottom:9px;background:#fafbfe}.entry-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:7px}.flat{font-weight:800;color:var(--dark);overflow-wrap:anywhere}.amount{font-weight:800;white-space:nowrap}.meta{font-size:.82rem;color:var(--muted);display:flex;justify-content:space-between;gap:7px;flex-wrap:wrap;align-items:center}
+.badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:.74rem;font-weight:800}.cash{background:#fff4dc;color:#8a6300}.online{background:#e3f0ff;color:var(--dark)}
+.del-btn{background:none;border:0;color:var(--red);font-weight:700;padding:5px 0 0;cursor:pointer}.totals{display:flex;justify-content:space-between;padding:12px 4px 0;font-size:.95rem;font-weight:800;border-top:1px dashed var(--border);margin-top:8px}
+.empty{text-align:center;color:var(--muted);font-size:.9rem;padding:20px 0}.hint{font-size:.82rem;color:var(--muted);line-height:1.45;margin:8px 0 0}.import-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.import-actions button{margin-top:10px}
+@media(min-width:520px){header h1{font-size:1.55rem}}
+</style>
+</head>
+<body>
+<header><h1>A–K Wing — Payment Entry</h1><p>Wing-wise entry, Excel upload aur report</p></header>
+<div class="container">
+  <div class="card">
+    <label for="wingNo">Wing</label><select id="wingNo" onchange="buildFlatList()"></select>
+    <label for="flatNo">Flat No</label><select id="flatNo"></select>
+    <label for="name">Name</label><input type="text" id="name" placeholder="Resident ka naam">
+    <label for="date">Date</label><input type="date" id="date">
+    <label for="amount">Amount (₹)</label><input type="number" id="amount" placeholder="0" inputmode="decimal" min="0" step="0.01">
+    <label>Payment Mode</label><div class="mode-toggle"><button type="button" class="mode-btn" id="cashBtn" onclick="setMode('Cash')">💵 Cash</button><button type="button" class="mode-btn" id="onlineBtn" onclick="setMode('Online')">💳 Online</button></div>
+    <button class="primary-btn" onclick="saveEntry()">Save Entry</button><div class="msg" id="msg"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">📥 Excel Upload <span class="count">.xlsx / .xls / .csv</span></div>
+    <input type="file" id="excelFile" accept=".xlsx,.xls,.csv">
+    <p class="hint">Excel mein columns rakhein: Wing, Flat No, Name, Date, Amount, Payment Mode. Import existing entries ko delete nahi karega; matching duplicate rows skip hongi.</p>
+    <button class="primary-btn" onclick="importExcel()">Upload Excel & Import Entries</button>
+    <button class="export-btn" onclick="downloadTemplate()">⬇ Download Excel Template</button>
+    <div class="msg" id="importMsg"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Entries <span class="count" id="entryCount">0</span></div>
+    <label for="wingFilter">Wing-wise entries dekhein</label><select id="wingFilter" onchange="renderEntries()"><option value="ALL">All Wings</option></select>
+    <label for="search">Search</label><input type="text" id="search" placeholder="Flat ya naam se search karo..." oninput="renderEntries()">
+    <div id="entriesList"></div>
+    <div class="totals" id="totalsBar" style="display:none"><span>Filtered Total</span><span id="totalAmount">₹0</span></div>
+    <button class="export-btn green-btn" onclick="exportExcel()">📊 Export Excel</button>
+    <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+    <button class="export-btn" onclick="backupJSON()">🛡️ Backup All Entries (JSON)</button>
+    <label for="restoreFile">Restore backup JSON</label><input type="file" id="restoreFile" accept=".json">
+    <button class="export-btn" onclick="restoreJSON()">Restore Backup (Merge)</button>
+  </div>
+</div>
+<script>
+let mode='Cash', entries=[];
+const STORAGE_KEY='jwing-entries';
+const WINGS=['A','B','C','D','E','F','G','H','I','J','K'];
+function buildWingList(){
+ const sel=document.getElementById('wingNo'), filter=document.getElementById('wingFilter');
+ WINGS.forEach(w=>{let o=document.createElement('option');o.value=w;o.textContent=w+' Wing';sel.appendChild(o);let f=document.createElement('option');f.value=w;f.textContent=w+' Wing';filter.appendChild(f)});
+}
+function buildFlatList(){
+ const wing=document.getElementById('wingNo').value||'A',sel=document.getElementById('flatNo');sel.innerHTML='';
+ for(let floor=1;floor<=11;floor++)for(let unit=1;unit<=4;unit++){let flat=wing+floor+String(unit).padStart(2,'0');let o=document.createElement('option');o.value=flat;o.textContent=flat;sel.appendChild(o)}
+}
+function setMode(m){mode=m;document.getElementById('cashBtn').className='mode-btn'+(m==='Cash'?' active-cash':'');document.getElementById('onlineBtn').className='mode-btn'+(m==='Online'?' active-online':'')}
+function todayStr(){let d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function loadEntries(){try{let raw=localStorage.getItem(STORAGE_KEY);entries=raw?JSON.parse(raw):[];if(!Array.isArray(entries))entries=[]}catch(e){entries=[]}entries=entries.map(normalizeEntry).filter(Boolean);renderEntries()}
+function persistEntries(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(entries));return true}catch(e){alert('Browser storage full ya unavailable hai. Pehle Backup All Entries download karein.');return false}}
+function normalizeFlat(row){
+ let raw=String(row['Flat No']??row['Flat']??row['Flat Number']??row['flat']??'').trim().toUpperCase().replace(/\s+/g,'');
+ let wing=String(row['Wing']??row['wing']??'').trim().toUpperCase().replace(/\s*WING/i,'');
+ if(!raw && wing) return '';
+ if(/^[A-K]\d{3,4}$/.test(raw))return raw;
+ if(/^[A-K]\d{2,3}$/.test(raw))return raw;
+ if(wing && /^[A-K]$/.test(wing) && /^\d{3,4}$/.test(raw))return wing+raw;
+ if(/^[A-K]$/.test(wing) && /^\d{2,3}$/.test(raw))return wing+raw;
+ return '';
+}
+function normalizeEntry(e){
+ if(!e||typeof e!=='object')return null;
+ let flat=String(e.flat??e['Flat No']??e.Flat??'').trim().toUpperCase().replace(/\s+/g,'');
+ if(!flat){flat=normalizeFlat(e);if(!flat)return null}
+ let name=String(e.name??e.Name??'').trim();
+ let amount=Number(e.amount??e.Amount??0);
+ if(!name||!Number.isFinite(amount)||amount<=0)return null;
+ let date=normalizeDate(e.date??e.Date??'');
+ let pm=String(e.mode??e['Payment Mode']??e.PaymentMode??'Cash').trim().toLowerCase();
+ let payMode=pm.includes('online')||pm.includes('upi')||pm.includes('bank')?'Online':'Cash';
+ return {id:e.id??(Date.now()+Math.floor(Math.random()*1000000)),flat,name,date,amount,mode:payMode};
+}
+function normalizeDate(v){
+ if(v===null||v===undefined||v==='')return todayStr();
+ if(typeof v==='number'&&v>20000&&v<80000){let d=XLSX.SSF.parse_date_code(v);if(d)return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`}
+ let s=String(v).trim();
+ if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);
+ let m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);
+ if(m){let a=Number(m[1]),b=Number(m[2]),y=Number(m[3]);if(y<100)y+=2000;let day=a,month=b;if(a<=12&&b>12){day=b;month=a}return `${y}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`}
+ let d=new Date(s);if(!isNaN(d))return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+ return todayStr();
+}
+function saveEntry(){
+ const flat=document.getElementById('flatNo').value,name=document.getElementById('name').value.trim(),date=document.getElementById('date').value||todayStr(),amount=Number(document.getElementById('amount').value),msg=document.getElementById('msg');
+ if(!name){msg.style.color='#c0392b';msg.textContent='Naam bharo';return}
+ if(!Number.isFinite(amount)||amount<=0){msg.style.color='#c0392b';msg.textContent='Amount sahi bharo';return}
+ entries.unshift({id:Date.now(),flat,name,date,amount,mode});if(!persistEntries())return;
+ msg.style.color='#1a7f37';msg.textContent='✓ '+flat+' ki entry save ho gayi';
+ document.getElementById('name').value='';document.getElementById('amount').value='';document.getElementById('date').value='';setMode('Cash');renderEntries();
+}
+function deleteEntry(id){if(!confirm('Is entry ko delete karna hai?'))return;entries=entries.filter(e=>String(e.id)!==String(id));persistEntries();renderEntries()}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function renderEntries(){
+ const list=document.getElementById('entriesList'),search=document.getElementById('search').value.toLowerCase().trim(),wing=document.getElementById('wingFilter').value;
+ const filtered=entries.filter(e=>(wing==='ALL'||e.flat.charAt(0)===wing)&&(`${e.flat} ${e.name} ${e.date} ${e.mode}`.toLowerCase().includes(search))).sort((a,b)=>a.flat.localeCompare(b.flat,undefined,{numeric:true})||String(b.date).localeCompare(String(a.date)));
+ document.getElementById('entryCount').textContent=filtered.length+' entries (total '+entries.length+')';
+ if(!filtered.length){list.innerHTML='<div class="empty">Is filter mein koi entry nahi mili</div>';document.getElementById('totalsBar').style.display='none';return}
+ let total=0;list.innerHTML=filtered.map(e=>{total+=Number(e.amount)||0;return `<div class="entry"><div class="entry-top"><span class="flat">${escapeHtml(e.flat)} — ${escapeHtml(e.name)}</span><span class="amount">₹${Number(e.amount).toLocaleString('en-IN')}</span></div><div class="meta"><span>${escapeHtml(e.date)}</span><span class="badge ${e.mode==='Cash'?'cash':'online'}">${escapeHtml(e.mode)}</span></div><button class="del-btn" onclick="deleteEntry('${String(e.id).replace(/'/g,'')}')">Delete</button></div>`}).join('');
+ document.getElementById('totalsBar').style.display='flex';document.getElementById('totalAmount').textContent='₹'+total.toLocaleString('en-IN');
+}
+function keyFor(e){return [e.flat,e.name.toLowerCase(),e.date,Number(e.amount),e.mode].join('|')}
+function importExcel(){
+ const file=document.getElementById('excelFile').files[0],msg=document.getElementById('importMsg');
+ if(!file){msg.style.color='#c0392b';msg.textContent='Pehle Excel/CSV file select karein.';return}
+ if(typeof XLSX==='undefined'){msg.style.color='#c0392b';msg.textContent='Excel library load nahi hui. Internet check karein.';return}
+ const reader=new FileReader();
+ reader.onload=function(ev){try{
+  const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});const sheet=wb.Sheets[wb.SheetNames[0]];const raw=XLSX.utils.sheet_to_json(sheet,{defval:'',raw:true});
+  if(!raw.length){throw new Error('Excel sheet khaali hai.')}
+  const existing=new Set(entries.map(keyFor));let added=0,skipped=0,invalid=0;
+  raw.forEach(row=>{
+   const obj={flat:normalizeFlat(row),name:row.Name??row.name??row.Resident??row['Resident Name']??'',date:row.Date??row.date??'',amount:row.Amount??row.amount??row.Payment??row['Payment Amount']??0,mode:row['Payment Mode']??row.Mode??row.mode??'Cash'};
+   if(!obj.flat){invalid++;return}
+   const e=normalizeEntry(obj);if(!e){invalid++;return}
+   const k=keyFor(e);if(existing.has(k)){skipped++;return}
+   e.id=Date.now()+added+Math.floor(Math.random()*1000);entries.push(e);existing.add(k);added++;
+  });
+  if(added&&!persistEntries())return;renderEntries();msg.style.color='#1a7f37';msg.textContent=`Import complete: ${added} added, ${skipped} duplicate skipped, ${invalid} invalid row(s) skipped.`;
+ }catch(err){msg.style.color='#c0392b';msg.textContent='Import nahi hua: '+(err.message||'Excel format check karein.')}};reader.readAsArrayBuffer(file);
+}
+function exportExcel(){
+ if(!entries.length){alert('Export karne ke liye entries nahi hain.');return}if(typeof XLSX==='undefined'){alert('Excel library load nahi hui.');return}
+ const sorted=entries.slice().sort((a,b)=>a.flat.localeCompare(b.flat,undefined,{numeric:true})||String(a.date).localeCompare(String(b.date)));
+ const rows=sorted.map(e=>({Wing:e.flat.charAt(0),'Flat No':e.flat,Name:e.name,Date:e.date,Amount:e.amount,'Payment Mode':e.mode}));
+ rows.push({Wing:'','Flat No':'',Name:'TOTAL',Date:'',Amount:sorted.reduce((s,e)=>s+Number(e.amount||0),0),'Payment Mode':''});
+ const wb=XLSX.utils.book_new();const ws=XLSX.utils.json_to_sheet(rows);ws['!cols']=[{wch:8},{wch:12},{wch:24},{wch:14},{wch:14},{wch:16}];XLSX.utils.book_append_sheet(wb,ws,'All Payments');
+ WINGS.forEach(w=>{let wr=sorted.filter(e=>e.flat.startsWith(w)).map(e=>({Wing:w,'Flat No':e.flat,Name:e.name,Date:e.date,Amount:e.amount,'Payment Mode':e.mode}));if(wr.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(wr),w+' Wing')});
+ XLSX.writeFile(wb,'AK_Wing_Payments_'+todayStr()+'.xlsx');
+}
+function exportCSV(){
+ if(!entries.length){alert('Export karne ke liye entries nahi hain.');return}
+ const rows=[['Wing','Flat No','Name','Date','Amount','Payment Mode'],...entries.map(e=>[e.flat.charAt(0),e.flat,e.name,e.date,e.amount,e.mode])];
+ const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+ const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='AK_Wing_Payments.csv';a.click();URL.revokeObjectURL(url);
+}
+function downloadTemplate(){
+ if(typeof XLSX==='undefined'){alert('Excel library load nahi hui.');return}
+ const sample=[{Wing:'A','Flat No':'A101',Name:'Resident Name',Date:todayStr(),Amount:5000,'Payment Mode':'Cash'},{Wing:'B','Flat No':'B101',Name:'Resident Name 2',Date:todayStr(),Amount:3000,'Payment Mode':'Online'}];
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(sample),'Payments');XLSX.writeFile(wb,'AK_Wing_Excel_Template.xlsx');
+}
+function backupJSON(){
+ const blob=new Blob([JSON.stringify({format:'AK-Wing-Payment-Backup',version:1,entries},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='AK_Wing_Backup_'+todayStr()+'.json';a.click();URL.revokeObjectURL(url);
+}
+function restoreJSON(){
+ const file=document.getElementById('restoreFile').files[0];if(!file){alert('Pehle backup JSON select karein.');return}
+ const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result),rows=Array.isArray(data)?data:data.entries;if(!Array.isArray(rows))throw new Error('Backup file format sahi nahi hai.');const keys=new Set(entries.map(keyFor));let added=0;rows.map(normalizeEntry).filter(Boolean).forEach(e=>{let k=keyFor(e);if(!keys.has(k)){e.id=Date.now()+added;entries.push(e);keys.add(k);added++}});persistEntries();renderEntries();alert(`${added} backup entries restore hui. Existing entries ko delete nahi kiya.`)}catch(e){alert('Restore nahi hua: '+e.message)}};r.readAsText(file);
+}
+buildWingList();buildFlatList();setMode('Cash');loadEntries();
+</script>
+</body>
+</html>
