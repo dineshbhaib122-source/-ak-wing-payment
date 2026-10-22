@@ -137,7 +137,13 @@ function importExcel(){
  if(typeof XLSX==='undefined'){msg.style.color='#c0392b';msg.textContent='Excel library load nahi hui. Internet check karein.';return}
  const reader=new FileReader();
  reader.onload=function(ev){try{
-  const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});const sheet=wb.Sheets[wb.SheetNames[0]];const raw=XLSX.utils.sheet_to_json(sheet,{defval:'',raw:true});
+  const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});const sheet=wb.Sheets[wb.SheetNames[0]];
+  // Find the actual column-header row even when the workbook has a title or blank rows above it.
+  const matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:true});
+  const headerIndex=matrix.findIndex(r=>r.some(c=>String(c??'').trim().toLowerCase()==='flat no') && r.some(c=>String(c??'').trim().toLowerCase()==='name'));
+  if(headerIndex<0)throw new Error('Excel mein Flat No aur Name columns nahi mile.');
+  const headers=matrix[headerIndex].map(c=>String(c??'').trim());
+  const raw=matrix.slice(headerIndex+1).filter(r=>r.some(c=>String(c??'').trim()!=='')).map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??''])));
   if(!raw.length)throw new Error('Excel sheet khaali hai.');
   const existing=new Set(entries.map(keyFor));let added=0,skipped=0,invalid=0,wrongWing=0;const duplicateFlatNames=[];
   raw.forEach(row=>{
